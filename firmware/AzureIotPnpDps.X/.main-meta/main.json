@@ -5,9 +5,9 @@
 		"metaDataVersion": "1.1.0",
 		"name": "com.microchip.mcu32.mplabx.project.MPLAB-Harmony-Reference-Apps_google_cloud_iot_core",
 		"version": "1.2.0",
-		"displayName": "Google Cloud IoT Core Application",
-		"projectName": "google_cloud_iot_core_sam_d21_iot_wg",
-		"shortDescription": "Google Cloud IoT Core Application on SAM D21 IoT WG Development Board",
+		"displayName": "Azure IoT Plug and Play Application",
+		"projectName": "azureiotpnpdps",
+		"shortDescription": "Auzre IoT Plug and Play on SAM D21 IoT WG Development Board",
 		"ide": {
 			"name": "MPLABX",
 			"semverRange": ">=5.40.0"
@@ -55,7 +55,7 @@
 			"SAMD21 Family",		
 			"Click",
 			"IoT",
-			"Google",
+			"Azure",
 			"Core",
 			"Node",
 			"Sensor",
