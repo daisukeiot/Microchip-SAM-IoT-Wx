@@ -199,9 +199,10 @@ void enable_provision_ap(void)
 
     apExtConfig.strApConfig = apConfig;
    
-   static char gacHttpProvDomainName[] = CFG_WLAN_AP_NAME;
-   LED_blinkingBlue(true);
-   m2m_wifi_start_provision_mode_ext(&apExtConfig, gacHttpProvDomainName, 1);
+    static char gacHttpProvDomainName[] = CFG_WLAN_AP_NAME;
+    //LED_blinkingBlue(true);
+    LED_SetBlue(LED_STATE_BLINK_FAST);
+    m2m_wifi_start_provision_mode_ext(&apExtConfig, gacHttpProvDomainName, 1);
 }
 
 void WiFi_ConStateCb(tenuM2mConnState status)
@@ -210,14 +211,16 @@ void WiFi_ConStateCb(tenuM2mConnState status)
         if (responseFromProvisionConnect) {
             SYS_TIME_TimerStop(softApConnectTaskHandle);
             responseFromProvisionConnect = false;
-            LED_blinkingBlue(false);
+            //LED_blinkingBlue(false);
+            LED_SetBlue(LED_STATE_OFF);
             ntpTimeFetchTaskHandle = SYS_TIME_CallbackRegisterMS(ntpTimeFetchTaskcb, 0, CLOUD_NTP_TASK_INTERVAL, SYS_TIME_PERIODIC);
             APP_application_post_provisioning();
         }
         shared_networking_params.haveAPConnection = 1;
         debug_printGOOD("wifi_cb: M2M_WIFI_RESP_CON_STATE_CHANGED: CONNECTED");
         CREDENTIALS_STORAGE_clearWifiCredentials();
-        LED_stopBlinkingGreen();
+        // LED_stopBlinkingGreen();
+        LED_SetGreen(LED_STATE_HOLD);
     // We need more than AP to have an APConnection, we also need a DHCP IP address!
     } else if (status == M2M_WIFI_DISCONNECTED) {
         checkBackTaskHandle = SYS_TIME_CallbackRegisterMS(checkBackTaskcb, 0, CLOUD_WIFI_TASK_INTERVAL, SYS_TIME_SINGLE);

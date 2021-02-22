@@ -207,7 +207,8 @@ void APP_Initialize(void)
 	uint32_t sw0CurrentVal = 0;
 	uint32_t sw1CurrentVal = 0;
     uint32_t i = 0;
-    
+
+    LED_init();
     LED_test();
     // Blocking debounce
     for(i = 0; i < APP_SW_DEBOUNCE_INTERVAL; i++)
@@ -222,7 +223,8 @@ void APP_Initialize(void)
             strcpy(ssid, APP_CFG_MAIN_WLAN_SSID);
             strcpy(pass, APP_CFG_MAIN_WLAN_PSK);
             sprintf((char*)authType, "%d", APP_CFG_MAIN_WLAN_AUTH);
-            LED_startBlinkingGreen();
+            //LED_startBlinkingGreen();
+            LED_SetGreen(LED_STATE_BLINK_FAST);
         }
         else
         {
@@ -384,7 +386,7 @@ void APP_Tasks(void)
             CLOUD_sched();
             wifi_sched();
             MQTT_sched();
-            LED_sched();
+            //LED_sched();
             break;
         }    
         default:
@@ -420,22 +422,28 @@ static void APP_DataTask(void)
         }
     } 
     if (!shared_networking_params.haveAPConnection) {
-        LED_BLUE_SetHigh();
+        //LED_BLUE_SetHigh();
+        LED_SetBlue(LED_STATE_HOLD);
     } else {
-        LED_BLUE_SetLow();
+        // LED_BLUE_SetLow();
+        LED_SetBlue(LED_STATE_OFF);
     }
     if (!shared_networking_params.haveERROR) {
-        LED_RED_SetHigh();
+        // LED_RED_SetHigh();
+        LED_SetRed(LED_STATE_HOLD);
     } else {
-        LED_RED_SetLow();
+        // LED_RED_SetLow();
+        LED_SetRed(LED_STATE_OFF);
     }
-    if (LED_isBlinkingGreen() == false) {
+//    if (LED_isBlinkingGreen() == false) {
         if (!CLOUD_isConnected()) {
-            LED_GREEN_SetHigh();
+            // LED_GREEN_SetHigh();
+            LED_SetGreen(LED_STATE_HOLD);
         } else {
-            LED_GREEN_SetLow();
+            // LED_GREEN_SetLow();
+            LED_SetGreen(LED_STATE_OFF);
         }
-    }
+//    }
 }
 
 static float APP_GetTempSensorValue(void)
@@ -496,7 +504,8 @@ void APP_SendToCloud(void)
    
    if (len >0) {
       CLOUD_publishData((uint8_t*)json, len);
-      LED_flashYellow();
+//      LED_flashYellow();
+      LED_SetYellow(LED_STATE_BLINK_SLOW);
    }
 }
 
@@ -507,7 +516,7 @@ void APP_ReceivedFromCloud(uint8_t *topic, uint8_t *payload)
     
     if ((subString = strstr((char*)payload, toggleToken)))
     {
-        LED_holdYellowOn( subString[strlen(toggleToken)] == '1' );
+        //LED_holdYellowOn( subString[strlen(toggleToken)] == '1' );
     }
 
     debug_print("topic: %s", topic);

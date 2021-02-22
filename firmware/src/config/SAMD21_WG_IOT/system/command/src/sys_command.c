@@ -67,6 +67,10 @@
 #include "../../../../../cryptoauthlib/lib/basic/atca_basic.h"
 #include "../../../../../mqtt_packetPopulation/mqtt_iotprovisioning_packetPopulate.h"
 
+#define LED_CLI
+#ifdef LED_CLI
+#include "led.h"
+#endif
 // *****************************************************************************
 // *****************************************************************************
 // Section: Type Definitions
@@ -216,6 +220,10 @@ static void get_firmware_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** a
 static void set_debug_level(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void get_set_dps_idscope(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 
+#ifdef LED_CLI
+static void set_led(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
+#endif
+
 static int      StringToArgs(char *pRawString, char *argv[]); // Convert string to argc & argv[]
 static bool     ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO);      // parse the command buffer
 
@@ -256,8 +264,20 @@ static const SYS_CMD_DESCRIPTOR    _builtinCmdTbl[]=
     {"idscope",     get_set_dps_idscope,    ": Get and Set DPS ID Scope //Usage: idscope [DPS ID Scope] or no parameter to display current setting"},
     {"q",           CommandQuit,            ": quit command processor"},
     {"help",        CommandHelp,            ": help"},
+#ifdef LED_CLI
+    {"led",         set_led,                ": LED"},
+#endif
 };
 
+#ifdef LED_CLI
+const char* led_string[] =
+{
+    "Blue",
+    "Green",
+    "Yellow",
+    "Red"
+};
+#endif
 // *****************************************************************************
 // *****************************************************************************
 // Section: SYS CMD Operation Routines
@@ -1370,3 +1390,114 @@ static void CmdAdjustPointers(SYS_CMD_IO_DCPT* pCmdIO)
     }
 }
 
+#ifdef LED_CLI
+static void print_led_help(SYS_CMD_DEVICE_NODE* pCmdIO, char* msg)
+{
+    const void* cmdIoParam = pCmdIO->cmdIoParam;
+
+    if (msg)
+    {
+        (*pCmdIO->pCmdApi->print)(cmdIoParam, msg);
+    }
+    (*pCmdIO->pCmdApi->print)(cmdIoParam, "============================================"LINE_TERM \
+           "led <LED Number>,<LED State>"LINE_TERM \
+           "---------------------"LINE_TERM \
+           "LED Number"LINE_TERM \
+           "1 = Blue"LINE_TERM \
+           "2 = Green"LINE_TERM \
+           "3 = Yellow"LINE_TERM \
+           "4 = Red"LINE_TERM \
+           "---------------------"LINE_TERM \
+           "LED State"LINE_TERM \
+           "1 = On"LINE_TERM \
+           "2 = Off"LINE_TERM \
+           "3 = Fast Blink"LINE_TERM \
+           "4 = Slow Blink"LINE_TERM \
+           LINE_TERM );
+    return;
+}
+
+static void set_led(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
+{
+    //	LED number
+    //	1 = Blue
+    //	2 = Green
+    //	3 = Yellow
+    //	4 = Red
+    //
+    //	State
+    //	1 = On
+    //	2 = Off
+    //	3 = Blink
+    uint8_t led_num = 0;
+    uint8_t led_state = 0;
+    led_set_state_t new_led_state = LED_STATE_OFF;
+
+    if (argc > 3)
+    {
+        return print_led_help(pCmdIO, NULL);
+    }
+
+    if (argc >= 2)
+    {
+        if (argv[1][0] == '-' && (argv[1][1] == 'h' || argv[1][1] == 'H' || argv[1][1] == '?'))
+        {
+            return print_led_help(pCmdIO, NULL);
+        }
+        else if (!isDigit((int)argv[1][0]))
+        {
+            return print_led_help(pCmdIO, "Please provide LED Number" LINE_TERM);
+        }
+        led_num = atoi(&argv[1][0]);
+    }
+    else
+    {
+        return print_led_help(pCmdIO, "Please provide LED Number" LINE_TERM);
+    }
+
+    if (argc == 3)
+    {
+        if (!isDigit((int)argv[2][0])) {
+            return print_led_help(pCmdIO, "Please provide LED State Number" LINE_TERM);
+        }
+        led_state = atoi(&argv[2][0]);
+    }
+    else
+    {
+        return print_led_help(pCmdIO, "Please provide LED State Number" LINE_TERM);
+    }
+
+    switch (led_state)
+    {
+        case 1:
+            new_led_state = LED_STATE_HOLD;
+            break;
+        case 2:
+            new_led_state = LED_STATE_OFF;
+            break;
+        case 3:
+            new_led_state = LED_STATE_BLINK_FAST;
+            break;
+        case 4:
+            new_led_state = LED_STATE_BLINK_SLOW;
+            break;
+    }
+
+    switch (led_num)
+    {
+        case 1:
+            LED_SetBlue(new_led_state);
+            break;
+        case 2:
+            LED_SetGreen(new_led_state);
+            break;
+        case 3:
+            LED_SetYellow(new_led_state);
+            break;
+        case 4:
+            LED_SetRed(new_led_state);
+            break;
+    }
+}
+
+#endif

@@ -35,20 +35,71 @@
 #define LED_ON				false
 #define LED_OFF				true
 
-#define LED_YELLOW_SetHigh()    LED_DAT_GPIO_PA11_Set()
-#define LED_GREEN_SetHigh()     LED_CON_GPIO_PA20_Set()    
-#define LED_BLUE_SetHigh()      LED_WIFI_GPIO_PA21_Set()
-#define LED_RED_SetHigh()       LED_ERR_GPIO_PA25_Set()
+#define LED_YELLOW_SetHigh_EX()    LED_DAT_GPIO_PA11_Set()
+#define LED_GREEN_SetHigh_EX()     LED_CON_GPIO_PA20_Set()    
+#define LED_BLUE_SetHigh_EX()      LED_WIFI_GPIO_PA21_Set()
+#define LED_RED_SetHigh_EX()       LED_ERR_GPIO_PA25_Set()
 
-#define LED_YELLOW_SetLow()     LED_DAT_GPIO_PA11_Clear()
-#define LED_GREEN_SetLow()      LED_CON_GPIO_PA20_Clear()
-#define LED_BLUE_SetLow()       LED_WIFI_GPIO_PA21_Clear()
-#define LED_RED_SetLow()        LED_ERR_GPIO_PA25_Clear()
+#define LED_YELLOW_SetLow_EX()     LED_DAT_GPIO_PA11_Clear()
+#define LED_GREEN_SetLow_EX()      LED_CON_GPIO_PA20_Clear()
+#define LED_BLUE_SetLow_EX()       LED_WIFI_GPIO_PA21_Clear()
+#define LED_RED_SetLow_EX()        LED_ERR_GPIO_PA25_Clear()
 
-#define LED_BLUE_Toggle()       LED_WIFI_GPIO_PA21_Toggle()
-#define LED_GREEN_Toggle()      LED_CON_GPIO_PA20_Toggle()
+#define LED_YELLOW_Toggle_EX()     LED_DAT_GPIO_PA11_Toggle()
+#define LED_GREEN_Toggle_EX()      LED_CON_GPIO_PA20_Toggle()
+#define LED_BLUE_Toggle_EX()       LED_WIFI_GPIO_PA21_Toggle()
+#define LED_RED_Toggle_EX()        LED_ERR_GPIO_PA25_Toggle()
+
+typedef enum
+{
+    LED_BLUE,
+    LED_GREEN,
+    LED_YELLOW,
+    LED_RED
+} led_number_t;
+
+typedef union
+{
+    struct {
+        unsigned short red:1;
+        unsigned short green:1;
+        unsigned short blue:1;
+        unsigned short yellow:1;
+        unsigned short reserved:12;
+    };
+    unsigned short AsUSHORT;
+} led_change_t;
+
+typedef union
+{
+    struct {
+        unsigned short red:3;
+        unsigned short green:3;
+        unsigned short blue:3;
+        unsigned short yellow:3;
+        unsigned short reserved:6;
+    };
+    unsigned short AsUSHORT;
+} led_state_t;
+
+typedef struct led
+{
+    led_change_t change_flag;
+    led_state_t  state_flag;
+} led_status_t;
+
+typedef enum
+{
+    LED_STATE_OFF        = 0,
+    LED_STATE_HOLD       = (1 << 0),
+    LED_STATE_BLINK_FAST = (1 << 1),
+    LED_STATE_BLINK_SLOW = (1 << 2),
+    LED_STAT_MAX         = INT16_MAX
+} led_set_state_t;
 
 void LED_test(void);
+void LED_init(void);
+
 void LED_flashYellow(void);
 void LED_holdYellowOn(bool holdHigh);
 void LED_flashRed(void);
@@ -57,5 +108,10 @@ void LED_startBlinkingGreen(void);
 void LED_stopBlinkingGreen(void);
 bool LED_isBlinkingGreen (void);
 void LED_sched(void);
+
+void LED_SetBlue(led_set_state_t newState);
+void LED_SetGreen(led_set_state_t newState);
+void LED_SetYellow(led_set_state_t newState);
+void LED_SetRed(led_set_state_t newState);
 
 #endif /* LED_H_ */
