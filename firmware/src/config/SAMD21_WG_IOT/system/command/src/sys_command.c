@@ -64,6 +64,8 @@
 #include "credentials_storage/credentials_storage.h"
 #include "debug_print.h"
 #include "m2m_wifi.h"
+#include "../../../../../cryptoauthlib/lib/basic/atca_basic.h"
+#include "../../../../../mqtt_packetPopulation/mqtt_iotprovisioning_packetPopulate.h"
 
 // *****************************************************************************
 // *****************************************************************************
@@ -212,6 +214,7 @@ static void get_device_id(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void get_cli_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void get_firmware_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 static void set_debug_level(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
+static void get_set_dps_idscope(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
 
 static int      StringToArgs(char *pRawString, char *argv[]); // Convert string to argc & argv[]
 static bool     ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO);      // parse the command buffer
@@ -250,6 +253,7 @@ static const SYS_CMD_DESCRIPTOR    _builtinCmdTbl[]=
     {"cli_version", get_cli_version,        ": Get CLI version "},
     {"version",     get_firmware_version,   ": Get Firmware version "},
     {"debug",       set_debug_level,        ": Set Debug Level "},
+    {"idscope",     get_set_dps_idscope,    ": Get and Set DPS ID Scope //Usage: idscope [DPS ID Scope] or no parameter to display current setting"},
     {"q",           CommandQuit,            ": quit command processor"},
     {"help",        CommandHelp,            ": help"},
 };
@@ -1039,6 +1043,58 @@ static void set_debug_level(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
     else {
         (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "Debug level must be between 0 (Least) and 4 (Most) \r\n" );
     }
+}
+
+static void get_set_dps_idscope(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
+{
+    char *dps_param;
+    char atca_id_scope[12]; //idscope 0ne001825F3
+    const void* cmdIoParam = pCmdIO->cmdIoParam;
+
+    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Azure IoT Device Provisioning Service ID Scope\r\n" );
+
+    if (argc == 1)
+    {
+        atcab_read_bytes_zone(ATCA_ZONE_DATA, ATCA_SLOT_DPS_IDSCOPE, 0, (uint8_t*)atca_id_scope, sizeof(atca_id_scope));
+        (*pCmdIO->pCmdApi->print)(cmdIoParam, "Current ID Scope : %s" LINE_TERM, atca_id_scope);
+    }
+    else
+    {
+        dps_param = argv[1];
+
+        if (strlen(dps_param) != 11)
+        {
+            (*pCmdIO->pCmdApi->print)(cmdIoParam, "ID Scope entered : %s. Wrong ID Scope length.  Should be 0neXXXXXXXX format" LINE_TERM, dps_param);
+            return;
+        }
+
+        if (dps_param[0] != '0' || dps_param[1] != 'n' || dps_param[2] != 'e')
+        {
+            (*pCmdIO->pCmdApi->print)(cmdIoParam, "ID Scope entered : %s. Wrong ID Scope length.  Should be 0neXXXXXXXX format" LINE_TERM, dps_param);
+            return;
+        }
+
+        uint8_t i;
+
+        for (i = 3 ; i < 10 ; i++)
+        {
+            if (!isalnum(dps_param[i]))
+            {
+                    (*pCmdIO->pCmdApi->print)(cmdIoParam, "ID Scope entered : %s. Wrong ID Scope length.  Should be 0neXXXXXXXX format" LINE_TERM, dps_param);
+                    return;
+            }
+        }
+
+        (*pCmdIO->pCmdApi->print)(cmdIoParam, "Writing ID Scope %s to ATCA" LINE_TERM, dps_param);
+        atcab_write_bytes_zone(ATCA_ZONE_DATA, ATCA_SLOT_DPS_IDSCOPE, 0, (uint8_t*)dps_param, sizeof(atca_id_scope));
+        atca_delay_ms(500);
+        atcab_read_bytes_zone(ATCA_ZONE_DATA, ATCA_SLOT_DPS_IDSCOPE, 0, (uint8_t*)atca_id_scope, sizeof(atca_id_scope));
+        (*pCmdIO->pCmdApi->print)(cmdIoParam, "New ID Scope : %s" LINE_TERM, atca_id_scope);
+
+        (*pCmdIO->pCmdApi->print)(cmdIoParam, "DPS %s" LINE_TERM, dps_param);
+    }
+
+    return;
 }
 
 static bool ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO)
