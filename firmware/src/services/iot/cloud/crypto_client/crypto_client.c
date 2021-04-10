@@ -25,18 +25,18 @@
     SOFTWARE.
 */
 #include <stdio.h>
-#include "../../../../cryptoauthlib/config/cryptoauthlib_config.h"
-#include "../../../../cryptoauthlib/lib/jwt/atca_jwt.h"
-#include "../../../../cryptoauthlib/lib/tls/atcatls.h"
+#include "definitions.h"
 #include "crypto_client.h"
 #include "../cloud_service.h"
+#include "cryptoauthlib.h"
+#include "jwt/atca_jwt.h"
 
 #ifndef ATCA_NO_HEAP
 #error : This project uses CryptoAuthLibrary V2. Please add "ATCA_NO_HEAP" to toolchain symbols.
 #endif
 
 #ifndef ATCA_NO_POLL
-#error : This project uses ATCA_NO_POLL option. Please add "ATCA_NO_POLL" to toolchain symbols.
+//#error : This project uses ATCA_NO_POLL option. Please add "ATCA_NO_POLL" to toolchain symbols.
 #endif
 
 #ifndef ATCA_HAL_I2C
@@ -54,11 +54,13 @@ const uint8_t public_key_x509_header[] = { 0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0
 
 uint8_t g_serial_number[ATCA_SERIAL_NUM_SIZE];
 
+extern ATCAIfaceCfg atecc608_0_init_data;
+
 /** \brief custom configuration for an ECCx08A device */
 ATCAIfaceCfg cfg_ateccx08a_i2c_custom = {
     .iface_type             = ATCA_I2C_IFACE,
     .devtype                = ATECC608A,
-    .atcai2c.slave_address  = 0xB0,
+    .atcai2c.address  = 0xB0,
     .atcai2c.bus            = 2,
     .atcai2c.baud           = 100000,
     .wake_delay             = 1500,
@@ -67,45 +69,45 @@ ATCAIfaceCfg cfg_ateccx08a_i2c_custom = {
 
 uint8_t cryptoDeviceInitialized = false;
 	
-uint8_t CRYPTO_CLIENT_createJWT(char* buf, size_t buflen, uint32_t ts, const char* projectId)
-{
-    atca_jwt_t jwt;
+// uint8_t CRYPTO_CLIENT_createJWT(char* buf, size_t buflen, uint32_t ts, const char* projectId)
+// {
+//     atca_jwt_t jwt;
 
-   if (!cryptoDeviceInitialized)
-   {
-      return ERROR;
-   }
+//    if (!cryptoDeviceInitialized)
+//    {
+//       return ERROR;
+//    }
 
-    if(buf && buflen)
-    {
-        /* Build the JWT */
-        if (ATCA_SUCCESS != atca_jwt_init(&jwt, buf, buflen))
-        {
-            return ERROR;
-        }
+//     if(buf && buflen)
+//     {
+//         /* Build the JWT */
+//         if (ATCA_SUCCESS != atca_jwt_init(&jwt, buf, buflen))
+//         {
+//             return ERROR;
+//         }
 
-        if (ATCA_SUCCESS != atca_jwt_add_claim_numeric(&jwt, "iat", ts))
-        {
-            return ERROR;
-        }
+//         if (ATCA_SUCCESS != atca_jwt_add_claim_numeric(&jwt, "iat", ts))
+//         {
+//             return ERROR;
+//         }
 
-        if (ATCA_SUCCESS != atca_jwt_add_claim_numeric(&jwt, "exp", ts +60*60)) // 1 hour
-        {
-            return ERROR;
-        }
+//         if (ATCA_SUCCESS != atca_jwt_add_claim_numeric(&jwt, "exp", ts +60*60)) // 1 hour
+//         {
+//             return ERROR;
+//         }
 
-        if (ATCA_SUCCESS != atca_jwt_add_claim_string(&jwt, "aud", projectId))
-        {
-            return ERROR;
-        }
+//         if (ATCA_SUCCESS != atca_jwt_add_claim_string(&jwt, "aud", projectId))
+//         {
+//             return ERROR;
+//         }
 
-        if (ATCA_SUCCESS != atca_jwt_finalize(&jwt, 0))
-        {
-            return ERROR;
-        }
-    }
-    return NO_ERROR;
-}
+//         if (ATCA_SUCCESS != atca_jwt_finalize(&jwt, 0))
+//         {
+//             return ERROR;
+//         }
+//     }
+//     return NO_ERROR;
+// }
 
 uint8_t CRYPTO_CLIENT_printPublicKey(char *s)
 {
@@ -114,7 +116,7 @@ uint8_t CRYPTO_CLIENT_printPublicKey(char *s)
     size_t bufferLen = sizeof(buf);
     ATCA_STATUS retVal;
     
-    if (ATCA_SUCCESS != atcab_init(&cfg_ateccx08a_i2c_custom))
+    if (ATCA_SUCCESS != atcab_init(&atecc608_0_init_data))
     {
         return ERROR;
     }
@@ -155,14 +157,14 @@ uint8_t CRYPTO_CLIENT_printSerialNumber(char *s)
     ATCA_STATUS status = ATCA_SUCCESS;
 	uint8_t i = 0;
 
-    ATCA_STATUS retVal = atcab_init(&cfg_ateccx08a_i2c_custom);
+    ATCA_STATUS retVal = atcab_init(&atecc608_0_init_data);
 
     if (ATCA_SUCCESS != retVal)
     {
         return retVal;
     }
 
-    status = atcatls_get_sn(g_serial_number);
+    status = atcab_read_serial_number(g_serial_number); 
 
     if (status == ATCA_SUCCESS)
     {

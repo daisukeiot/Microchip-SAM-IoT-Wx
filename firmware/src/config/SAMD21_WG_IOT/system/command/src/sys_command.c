@@ -57,20 +57,6 @@
 #include "system/console/sys_console.h"
 #include "system/debug/sys_debug.h"
 
-#include "mqtt/mqtt_core/mqtt_core.h"
-#include "services/iot/cloud/crypto_client/crypto_client.h"
-#include "services/iot/cloud/cloud_service.h"
-#include "services/iot/cloud/wifi_service.h"
-#include "credentials_storage/credentials_storage.h"
-#include "debug_print.h"
-#include "m2m_wifi.h"
-#include "../../../../../cryptoauthlib/lib/basic/atca_basic.h"
-#include "../../../../../mqtt_packetPopulation/mqtt_iotprovisioning_packetPopulate.h"
-
-#define LED_CLI
-#ifdef LED_CLI
-#include "led.h"
-#endif
 // *****************************************************************************
 // *****************************************************************************
 // Section: Type Definitions
@@ -108,15 +94,6 @@ typedef struct
 
 #define         LINE_TERM       "\r\n"          // line terminator
 #define         _promptStr      ">"             // prompt string
-
-#define MAX_PUB_KEY_LEN         200
-#define WIFI_PARAMS_OPEN    1
-#define WIFI_PARAMS_PSK     2
-#define WIFI_PARAMS_WEP     3
-
-const char * const cli_version_number             = "1.0";
-const char * const firmware_version_number        = "1.0.0";
-
 
 // descriptor of the command I/O node 
 typedef struct SYS_CMD_IO_DCPT
@@ -211,19 +188,6 @@ static void     CommandReset(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
 static void     CommandQuit(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);              // command quit
 static void     CommandHelp(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);              // help
 
-static void reconnect_cmd(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void set_wifi_auth(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void get_public_key(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void get_device_id(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void get_cli_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void get_firmware_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void set_debug_level(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void get_set_dps_idscope(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-
-#ifdef LED_CLI
-static void set_led(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-#endif
-
 static int      StringToArgs(char *pRawString, char *argv[]); // Convert string to argc & argv[]
 static bool     ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO);      // parse the command buffer
 
@@ -253,31 +217,11 @@ const SYS_CMD_API sysConsoleApi =
 // built-in command table
 static const SYS_CMD_DESCRIPTOR    _builtinCmdTbl[]=
 {
-    {"reset",       CommandReset,           ": Reset host"},
-    {"reconnect",   reconnect_cmd,          ": MQTT Reconnect "},
-    {"wifi",        set_wifi_auth,          ": Set Wifi credentials //Usage: wifi <ssid>[,<pass>,[authType]] "},
-    {"key",         get_public_key,         ": Get ECC Public Key "},
-    {"device",      get_device_id,          ": Get ECC Serial No. "},
-    {"cli_version", get_cli_version,        ": Get CLI version "},
-    {"version",     get_firmware_version,   ": Get Firmware version "},
-    {"debug",       set_debug_level,        ": Set Debug Level "},
-    {"idscope",     get_set_dps_idscope,    ": Get and Set DPS ID Scope //Usage: idscope [DPS ID Scope] or no parameter to display current setting"},
-    {"q",           CommandQuit,            ": quit command processor"},
-    {"help",        CommandHelp,            ": help"},
-#ifdef LED_CLI
-    {"led",         set_led,                ": LED"},
-#endif
+    {"reset",   CommandReset,   ": Reset host"},
+    {"q",       CommandQuit,    ": quit command processor"},
+    {"help",    CommandHelp,    ": help"},
 };
 
-#ifdef LED_CLI
-const char* led_string[] =
-{
-    "Blue",
-    "Green",
-    "Yellow",
-    "Red"
-};
-#endif
 // *****************************************************************************
 // *****************************************************************************
 // Section: SYS CMD Operation Routines
@@ -815,7 +759,9 @@ static void CommandReset(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
 {
     const void* cmdIoParam = pCmdIO->cmdIoParam;
     (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** System Reboot ***\r\n" );
-    NVIC_SystemReset();
+
+   //  SYS_RESET_SoftwareReset();
+
 }
 
 // quit
@@ -909,212 +855,6 @@ static void CommandHelp(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
         }
     }
 
-}
-
-static void reconnect_cmd(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    MQTT_Disconnect(MQTT_GetClientConnectionInfo());
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "OK\r\n" );
-}
-
-static void set_wifi_auth(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-//    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    char *credentials[3];
-    char *pch;
-    uint8_t params = 0;
-	uint8_t i,j;
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    char dummy_ssid[100];
-    uint8_t dummy_argc = 0;
-    
-    for(j=1;j<argc;j++){
-      
-        sprintf(&dummy_ssid[dummy_argc],"%s ",argv[j]);
-        dummy_argc += strlen(argv[j])+1;
-    }      
-    
-    for(i=0;i<=2;i++)credentials[i]='\0';
-
-    pch = strtok (&dummy_ssid[0], ",");
-    credentials[0]=pch;
-       
-    while (pch != NULL && params <= 2)
-    {
-        credentials[params] = pch;
-        params++;
-        pch = strtok (NULL, ",");
-
-    }
-    
-    if(credentials[0]!=NULL)
-    {
-        if(credentials[1]==NULL && credentials[2]==NULL) params=1;
-        else if(credentials[1]!= NULL && credentials[2]== NULL)
-        {
-            params=atoi(credentials[1]);//Resuse the same variable to store the auth type
-            if (params==2 || params==3)params=5;
-            else if(params==1);
-            else params=2;
-        }
-		else params = atoi(credentials[2]);		
-    }
-
-    switch (params)
-    {
-        case WIFI_PARAMS_OPEN:
-                strncpy(ssid, credentials[0],MAX_WIFI_CREDENTIALS_LENGTH-1);
-                strcpy(pass, "\0");
-                strcpy(authType, "1");                
-            break;
-
-        case WIFI_PARAMS_PSK:
-		case WIFI_PARAMS_WEP:
-                strncpy(ssid, credentials[0],MAX_WIFI_CREDENTIALS_LENGTH-1);
-                strncpy(pass, credentials[1],MAX_WIFI_CREDENTIALS_LENGTH-1);
-                sprintf(authType, "%d", params);                
-            break;
-            
-        default:
-			params = 0;
-            break;
-    }
-	if (params)
-	{
-		(*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "OK\r\n\4" );
-        
-        if(CLOUD_isConnected())
-        {
-            MQTT_Close(MQTT_GetClientConnectionInfo());
-        }        
-		//wifi_disconnectFromAp();
-        m2m_wifi_disconnect();
-	}
-	else
-	{
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "Error. Wi-Fi command format is wifi <ssid>[,<pass>,[authType]]\r\n\4" );
-	}
-}
-
-static void get_public_key(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    char key_pem_format[MAX_PUB_KEY_LEN];
-
-    if (CRYPTO_CLIENT_printPublicKey(key_pem_format) == NO_ERROR)
-    {
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, key_pem_format);
-    }
-    else
-    {
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Error getting key.\r\n" );
-    }
-}
-
-static char *ateccsn = NULL;
-
-void set_deviceId(char *id)
-{
-   ateccsn = id;
-}
-
-static void get_device_id(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Device ID\r\n" );
-    if (ateccsn)
-    {
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, ateccsn);
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "OK\r\n\4" );
-    }
-    else
-    {
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Unknown.\r\n" );
-    }    
-}
-
-static void get_cli_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " CLI Version\r\n" );
-    (*pCmdIO->pCmdApi->print)(cmdIoParam, cli_version_number);
-}
-
-static void get_firmware_version(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Firmware Version\r\n" );
-    (*pCmdIO->pCmdApi->print)(cmdIoParam, firmware_version_number);
-}
-
-static void set_debug_level(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-     //debug_severity_t level = SEVERITY_NONE;
-     uint8_t level = 0;
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Set Debug Level\r\n" );
-    (*pCmdIO->pCmdApi->print)(cmdIoParam, argv[1]);
-    level = (*argv[1] - '0');
-    if (level >=0 && level <=4){
-        debug_setSeverity((debug_severity_t)level);
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "OK\r\n\4" );
-    }
-    else {
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "Debug level must be between 0 (Least) and 4 (Most) \r\n" );
-    }
-}
-
-static void get_set_dps_idscope(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    char *dps_param;
-    char atca_id_scope[12]; //idscope 0ne001825F3
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " Azure IoT Device Provisioning Service ID Scope\r\n" );
-
-    if (argc == 1)
-    {
-        atcab_read_bytes_zone(ATCA_ZONE_DATA, ATCA_SLOT_DPS_IDSCOPE, 0, (uint8_t*)atca_id_scope, sizeof(atca_id_scope));
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, "Current ID Scope : %s" LINE_TERM, atca_id_scope);
-    }
-    else
-    {
-        dps_param = argv[1];
-
-        if (strlen(dps_param) != 11)
-        {
-            (*pCmdIO->pCmdApi->print)(cmdIoParam, "ID Scope entered : %s. Wrong ID Scope length.  Should be 0neXXXXXXXX format" LINE_TERM, dps_param);
-            return;
-        }
-
-        if (dps_param[0] != '0' || dps_param[1] != 'n' || dps_param[2] != 'e')
-        {
-            (*pCmdIO->pCmdApi->print)(cmdIoParam, "ID Scope entered : %s. Wrong ID Scope length.  Should be 0neXXXXXXXX format" LINE_TERM, dps_param);
-            return;
-        }
-
-        uint8_t i;
-
-        for (i = 3 ; i < 10 ; i++)
-        {
-            if (!isalnum(dps_param[i]))
-            {
-                    (*pCmdIO->pCmdApi->print)(cmdIoParam, "ID Scope entered : %s. Wrong ID Scope length.  Should be 0neXXXXXXXX format" LINE_TERM, dps_param);
-                    return;
-            }
-        }
-
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, "Writing ID Scope %s to ATCA" LINE_TERM, dps_param);
-        atcab_write_bytes_zone(ATCA_ZONE_DATA, ATCA_SLOT_DPS_IDSCOPE, 0, (uint8_t*)dps_param, sizeof(atca_id_scope));
-        atca_delay_ms(500);
-        atcab_read_bytes_zone(ATCA_ZONE_DATA, ATCA_SLOT_DPS_IDSCOPE, 0, (uint8_t*)atca_id_scope, sizeof(atca_id_scope));
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, "New ID Scope : %s" LINE_TERM, atca_id_scope);
-
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, "DPS %s" LINE_TERM, dps_param);
-    }
-
-    return;
 }
 
 static bool ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO)
@@ -1390,114 +1130,3 @@ static void CmdAdjustPointers(SYS_CMD_IO_DCPT* pCmdIO)
     }
 }
 
-#ifdef LED_CLI
-static void print_led_help(SYS_CMD_DEVICE_NODE* pCmdIO, char* msg)
-{
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
-
-    if (msg)
-    {
-        (*pCmdIO->pCmdApi->print)(cmdIoParam, msg);
-    }
-    (*pCmdIO->pCmdApi->print)(cmdIoParam, "============================================"LINE_TERM \
-           "led <LED Number>,<LED State>"LINE_TERM \
-           "---------------------"LINE_TERM \
-           "LED Number"LINE_TERM \
-           "1 = Blue"LINE_TERM \
-           "2 = Green"LINE_TERM \
-           "3 = Yellow"LINE_TERM \
-           "4 = Red"LINE_TERM \
-           "---------------------"LINE_TERM \
-           "LED State"LINE_TERM \
-           "1 = On"LINE_TERM \
-           "2 = Off"LINE_TERM \
-           "3 = Fast Blink"LINE_TERM \
-           "4 = Slow Blink"LINE_TERM \
-           LINE_TERM );
-    return;
-}
-
-static void set_led(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
-{
-    //	LED number
-    //	1 = Blue
-    //	2 = Green
-    //	3 = Yellow
-    //	4 = Red
-    //
-    //	State
-    //	1 = On
-    //	2 = Off
-    //	3 = Blink
-    uint8_t led_num = 0;
-    uint8_t led_state = 0;
-    led_set_state_t new_led_state = LED_STATE_OFF;
-
-    if (argc > 3)
-    {
-        return print_led_help(pCmdIO, NULL);
-    }
-
-    if (argc >= 2)
-    {
-        if (argv[1][0] == '-' && (argv[1][1] == 'h' || argv[1][1] == 'H' || argv[1][1] == '?'))
-        {
-            return print_led_help(pCmdIO, NULL);
-        }
-        else if (!isDigit((int)argv[1][0]))
-        {
-            return print_led_help(pCmdIO, "Please provide LED Number" LINE_TERM);
-        }
-        led_num = atoi(&argv[1][0]);
-    }
-    else
-    {
-        return print_led_help(pCmdIO, "Please provide LED Number" LINE_TERM);
-    }
-
-    if (argc == 3)
-    {
-        if (!isDigit((int)argv[2][0])) {
-            return print_led_help(pCmdIO, "Please provide LED State Number" LINE_TERM);
-        }
-        led_state = atoi(&argv[2][0]);
-    }
-    else
-    {
-        return print_led_help(pCmdIO, "Please provide LED State Number" LINE_TERM);
-    }
-
-    switch (led_state)
-    {
-        case 1:
-            new_led_state = LED_STATE_HOLD;
-            break;
-        case 2:
-            new_led_state = LED_STATE_OFF;
-            break;
-        case 3:
-            new_led_state = LED_STATE_BLINK_FAST;
-            break;
-        case 4:
-            new_led_state = LED_STATE_BLINK_SLOW;
-            break;
-    }
-
-    switch (led_num)
-    {
-        case 1:
-            LED_SetBlue(new_led_state);
-            break;
-        case 2:
-            LED_SetGreen(new_led_state);
-            break;
-        case 3:
-            LED_SetYellow(new_led_state);
-            break;
-        case 4:
-            LED_SetRed(new_led_state);
-            break;
-    }
-}
-
-#endif

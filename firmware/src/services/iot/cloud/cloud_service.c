@@ -44,7 +44,7 @@
 #include "wifi_service.h" 
 #include "../../../credentials_storage/credentials_storage.h"
 #include "../../../mqtt/mqtt_packetTransfer_interface.h"
-#include "../../../cryptoauthlib/lib/basic/atca_basic.h"
+#include "definitions.h"
 
 #define UNIX_OFFSET  946684800
 
@@ -63,7 +63,7 @@ char mqttSubscribeTopic[TOPIC_SIZE];
 //uint32_t cloudResetTask(void *payload);
 
 //static void dnsHandler(uint8_t * domainName, uint32_t serverIP);
-static void updateJWT(uint32_t epoch);
+//static void updateJWT(uint32_t epoch);
 
 static int8_t connectMQTTSocket(void);
 static void connectMQTT();
@@ -153,7 +153,7 @@ static void connectMQTT()
    if (currentTime > 0)
    {
       // The JWT takes time in UNIX format (seconds since 1970)
-      updateJWT(currentTime + UNIX_OFFSET);	  
+      //updateJWT(currentTime + UNIX_OFFSET);	  
 	  MQTT_CLIENT_connect();
    }      
    debug_print("CLOUD: MQTT Connect");
@@ -391,43 +391,36 @@ void dnsHandler(uint8_t* domainName, uint32_t serverIP)
     }
 }
 
-char config_gcp_thing_id[20];
-static void updateJWT(uint32_t epoch)
-{
-    uint8_t serial_num[9]; 
-    int hex_size;
-    uint16_t i;
-   
-    hex_size = sizeof(config_gcp_thing_id) - 1;
-    config_gcp_thing_id[0] = 'd';
+// char config_gcp_thing_id[20];
+// static void updateJWT(uint32_t epoch)
+// {
+//     uint8_t serial_num[9]; 
+//     size_t hex_size;
+
+//     hex_size = sizeof(config_gcp_thing_id) - 1;
+//     config_gcp_thing_id[0] = 'd';
 	 
-	atcab_read_serial_number(serial_num);
+// 	atcab_read_serial_number(serial_num);
 
-	atcab_bin2hex_(serial_num, sizeof(serial_num), &config_gcp_thing_id[1], &hex_size, false);
-    sprintf(deviceId, "%s", config_gcp_thing_id);
+// 	atcab_bin2hex_(serial_num, sizeof(serial_num), &config_gcp_thing_id[1], &hex_size, false, false,true);
+//     sprintf(deviceId, "%s", config_gcp_thing_id);
      
-    sprintf(cid, "projects/%s/locations/%s/registries/%s/devices/%s", projectId, projectRegion, registryId, deviceId);
-    sprintf(mqttTopic, "/devices/%s/events", deviceId);
+//     sprintf(cid, "projects/%s/locations/%s/registries/%s/devices/%s", projectId, projectRegion, registryId, deviceId);
+//     sprintf(mqttTopic, "/devices/%s/events", deviceId);
     
-    debug_printInfo("MQTT: CID=");
-    for(i = 0; cid[i] != '\0'; i++)
-    {
-        debug_print("%c", cid[i]);
-    }
-       
-    debug_printInfo("MQTT: mqttTopic=s");
-    for(i = 0; mqttTopic[i] != '\0'; i++)
-    {
-        debug_print("%c", mqttTopic[i]);
-    }
+//     debug_printInfo("MQTT: mqttTopic = %s",mqttTopic);
+    
+//     debug_printInfo("MQTT: CID=");
 
+//     debug_printInfo("%s", cid);
+    
+//     debug_print("JWT: epoch=%d", (epoch - UNIX_OFFSET));
+    
+//     uint8_t res = CRYPTO_CLIENT_createJWT((char*)mqttPassword, PASSWORD_SPACE, (epoch - UNIX_OFFSET), projectId);
 
-    debug_printInfo("JWT: epoch=%d", (epoch - UNIX_OFFSET));
-    uint8_t res = CRYPTO_CLIENT_createJWT((char*)mqttPassword, PASSWORD_SPACE, (epoch - UNIX_OFFSET), projectId);
-
-    time_t t = epoch - UNIX_OFFSET;
-    debug_printInfo("JWT: Result(%d) at %s", res==0? 1 : -1, ctime(&t));
-}
+//     time_t t = epoch - UNIX_OFFSET;
+//     debug_printInfo("JWT: Result(%d) at %s", res==0? 1 : -1, ctime(&t));
+// }
 
 static uint8_t reInit(void)
 {
