@@ -28,7 +28,6 @@
               <itemPath>../src/azure-sdk-for-c/sdk/inc/azure/iot/internal/az_iot_common_internal.h</itemPath>
             </logicalFolder>
             <itemPath>../src/azure-sdk-for-c/sdk/inc/azure/iot/az_iot_common.h</itemPath>
-            <itemPath>../src/azure-sdk-for-c/sdk/inc/azure/iot/az_iot_hub_client.h</itemPath>
             <itemPath>../src/azure-sdk-for-c/sdk/inc/azure/iot/az_iot_pnp_client.h</itemPath>
             <itemPath>../src/azure-sdk-for-c/sdk/inc/azure/iot/az_iot_provisioning_client.h</itemPath>
           </logicalFolder>

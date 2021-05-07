@@ -72,7 +72,7 @@
 
 #include "azure/core/az_span.h"
 #include "azure/core/az_json.h"
-#include "azure/iot/az_iot_hub_client.h"
+#include "azure/iot/az_iot_pnp_client.h"
 
 #if CFG_ENABLE_CLI
 #include "system/command/sys_command.h"
@@ -145,10 +145,10 @@ volatile bool   App_CloudTaskTmrExpired = false;
 
 static uint8_t telemetryInterval = CFG_SEND_INTERVAL;
 
-extern az_iot_hub_client hub_client;
 extern pf_MQTT_CLIENT    pf_mqtt_iotprovisioning_client;
 extern pf_MQTT_CLIENT    pf_mqtt_iothub_client;
 extern void              sys_cmd_init();
+extern az_iot_pnp_client pnp_client;
 
 // *****************************************************************************
 /* Application Data
@@ -519,12 +519,22 @@ static void APP_DataTask(void)
 //
 void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
 {
-    // az_iot_hub_client_method_request method_request;
+    az_result rc;
+    az_iot_pnp_client_command_request command_request;
 
-    // az_result result = az_iot_hub_client_methods_parse_received_topic(&hub_client, az_span_create_from_str((char*)topic), &method_request);
+    debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
 
-    debug_printInfo("  APP: %s()", __FUNCTION__);
+    if (topic == NULL)
+    {
+        debug_printWarn("  APP: Command topic empty");
+        return;
+    }
 
+    az_span command_topic_span   = az_span_create(topic, strlen((char*)topic));
+
+    rc = az_iot_pnp_client_commands_parse_received_topic(&pnp_client, command_topic_span, &command_request);
+
+    debug_printInfo("  APP: << %s() %D", __FUNCTION__, rc);
     // ToDo : Add code to process twin
 }
 
@@ -532,27 +542,47 @@ void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
 // Properties (Device Twin)
 //
 
-// Switch on the type of twin message and handle accordingly | On desired prop, respond with max
-// temp reported prop.
-// static void handle_twin_message(
-//     az_span                          payload,
-//     az_iot_hub_client_twin_response* twin_response)
-// {
-//     debug_printInfo("  APP: %s()", __FUNCTION__);
-// }
-
 void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
 {
-    debug_printInfo("  APP: %s()", __FUNCTION__);
+    az_result rc;
+    az_iot_pnp_client_property_response property_response;
+
+    debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
+
+    if (topic == NULL)
+    {
+        debug_printWarn("  APP: Twin topic empty");
+        return;
+    }
+
+    az_span property_topic_span   = az_span_create(topic, strlen((char*)topic));
+
+    rc = az_iot_pnp_client_property_parse_received_topic(&pnp_client, property_topic_span, &property_response);
 
     // ToDo : Add code to process twin
+
+    debug_printInfo("  APP: << %s() %D", __FUNCTION__, rc);
+
 }
 
 void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload)
 {
-    debug_printInfo("  APP: %s()", __FUNCTION__);
+    az_result rc;
+    az_iot_pnp_client_property_response property_response;
 
-    // ToDo : Add code to process twin
+    debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
+
+    if (topic == NULL)
+    {
+        debug_printWarn("  APP: Twin topic empty");
+        return;
+    }
+
+    az_span property_topic_span   = az_span_create(topic, strlen((char*)topic));
+
+    rc = az_iot_pnp_client_property_parse_received_topic(&pnp_client, property_topic_span, &property_response);
+
+    debug_printInfo("  APP: << %s() %D", __FUNCTION__, rc);
 }
 
 //

@@ -16,7 +16,6 @@
 #include "lib/basic/atca_basic.h"
 #include "led.h"
 #include "azure/iot/az_iot_provisioning_client.h"
-#include "azure/iot/az_iot_hub_client.h"
 #include "azure/core/az_span.h"
 
 #ifdef CFG_MQTT_PROVISIONING_HOST

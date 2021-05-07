@@ -38,7 +38,7 @@
 #include "debug_print.h"
 #include "led.h"
 #include "lib/basic/atca_basic.h"
-#include "azure/iot/az_iot_hub_client.h"
+#include "azure/iot/az_iot_pnp_client.h"
 #include "azure/core/az_span.h"
 
 pf_MQTT_CLIENT pf_mqtt_iothub_client = {
@@ -60,7 +60,7 @@ char              mqtt_get_topic_twin_buf[64];
 char              username_buf[200];
 uint8_t           device_id_buf[100];
 az_span           device_id;
-az_iot_hub_client hub_client;
+az_iot_pnp_client pnp_client;
 
 /** \brief MQTT publish handler call back table.
  *
@@ -76,32 +76,21 @@ publishReceptionHandler_t imqtt_publishReceiveCallBackTable[MAX_NUM_TOPICS_SUBSC
 
 void MQTT_CLIENT_iothub_publish(uint8_t* data, uint16_t len)
 {
-    uint8_t                   properties_buf[256];
-    az_span                   properties = AZ_SPAN_FROM_BUFFER(properties_buf);
-    az_iot_message_properties properties_topic;
-    az_result                 result = az_iot_message_properties_init(&properties_topic, properties, 0);
+    az_result result;
 
     debug_printGood("  HUB: Publishing to '%s'", hub_hostname);
 
-    if (az_result_failed(result))
-    {
-        debug_printError("az_iot_hub_client_properties_init failed");
-        return;
-    }
-
-    result = az_iot_message_properties_append(&properties_topic, AZ_SPAN_FROM_STR("foo"), AZ_SPAN_FROM_STR("bar"));
-    if (az_result_failed(result))
-    {
-        debug_printError("az_iot_hub_client_properties_append failed");
-        return;
-    }
-
-    result = az_iot_hub_client_telemetry_get_publish_topic(
-        &hub_client, &properties_topic, mqtt_telemetry_topic_buf, sizeof(mqtt_telemetry_topic_buf), NULL);
+    result = az_iot_pnp_client_telemetry_get_publish_topic(
+        &pnp_client,
+        AZ_SPAN_EMPTY,
+        NULL,
+        mqtt_telemetry_topic_buf,
+        sizeof(mqtt_telemetry_topic_buf),
+        NULL);
 
     if (az_result_failed(result))
     {
-        debug_printError("az_iot_hub_client_telemetry_get_publish_topic failed");
+        debug_printError("az_iot_pnp_client_telemetry_get_publish_topic failed");
         return;
     }
 
@@ -140,20 +129,19 @@ void MQTT_CLIENT_iothub_connect(char* deviceID)
     az_span_copy(device_id, deviceID_parm);
     device_id = az_span_slice(device_id, 0, az_span_size(deviceID_parm));
 
-    az_iot_hub_client_options options = az_iot_hub_client_options_default();
-    options.model_id                  = device_model_id_span;
-    az_result result                  = az_iot_hub_client_init(&hub_client, iothub_hostname, device_id, &options);
+    az_result result = az_iot_pnp_client_init(&pnp_client, iothub_hostname, device_id, device_model_id_span, NULL);
+
     if (az_result_failed(result))
     {
-        debug_printError("  HUB: az_iot_hub_client_init failed");
+        debug_printError("  HUB: az_iot_pnp_client_init failed");
         return;
     }
 
     size_t username_buf_len;
-    result = az_iot_hub_client_get_user_name(&hub_client, username_buf, sizeof(username_buf), &username_buf_len);
+    result = az_iot_pnp_client_get_user_name(&pnp_client, username_buf, sizeof(username_buf), &username_buf_len);
     if (az_result_failed(result))
     {
-        debug_printError("  HUB: az_iot_hub_client_get_user_name failed");
+        debug_printError("  HUB: az_iot_pnp_client_get_user_name failed");
         return;
     }
 
@@ -212,10 +200,15 @@ void MQTT_CLIENT_iothub_connected()
 {
     // get the current state of the device twin
     debug_printGood("  HUB: MQTT_CLIENT_iothub_connected()");
-    az_result result = az_iot_hub_client_twin_document_get_publish_topic(&hub_client, twin_request_id, mqtt_get_topic_twin_buf, sizeof(mqtt_get_topic_twin_buf), NULL);
+    az_result result = az_iot_pnp_client_property_document_get_publish_topic(&pnp_client,
+                                                                             twin_request_id,
+                                                                             mqtt_get_topic_twin_buf,
+                                                                             sizeof(mqtt_get_topic_twin_buf),
+                                                                             NULL);
+
     if (az_result_failed(result))
     {
-        debug_printError("  HUB: az_iot_hub_client_twin_document_get_publish_topic failed");
+        debug_printError("  HUB: az_iot_pnp_client_property_document_get_publish_topic failed");
         return;
     }
 
