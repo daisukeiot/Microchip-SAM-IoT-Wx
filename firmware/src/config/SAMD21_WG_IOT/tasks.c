@@ -54,8 +54,6 @@
 #include "definitions.h"
 
 
-
-
 // *****************************************************************************
 // *****************************************************************************
 // Section: System "Tasks" Routine
@@ -69,35 +67,25 @@
   Remarks:
     See prototype in system/common/sys_module.h.
 */
-void SYS_Tasks ( void )
+void SYS_Tasks(void)
 {
     /* Maintain system services */
-    
-SYS_CMD_Tasks();
 
-
-
+    SYS_CMD_Tasks();
 
 
     /* Maintain Device Drivers */
-    WDRV_WINC_Tasks(sysObj.drvWifiWinc); 
-
-
+    WDRV_WINC_Tasks(sysObj.drvWifiWinc);
 
 
     /* Maintain Middleware & Other Libraries */
-    
+
 
     /* Maintain the application's state machine. */
-        /* Call Application task APP. */
+    /* Call Application task APP. */
     APP_Tasks();
-
-
-
-
 }
 
 /*******************************************************************************
  End of File
  */
-

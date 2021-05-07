@@ -57,10 +57,11 @@
 
 #include "configuration.h"
 #include "definitions.h"
+#include "debug_print.h"
 
 // DOM-IGNORE-BEGIN
-#ifdef __cplusplus // Provide C++ Compatibility
-    extern "C" {
+#ifdef __cplusplus   // Provide C++ Compatibility
+extern "C" {
 #endif
 // DOM-IGNORE-END
 
@@ -77,7 +78,7 @@
     None.
 */
 
-typedef void (*WDRV_WINC_DEBUG_PRINT_CALLBACK)(const char*, ...);
+typedef void (*WDRV_WINC_DEBUG_PRINT_CALLBACK)(debug_severity_t debug_severity, debug_errorLevel_t error_level, const char*, ...);
 
 // *****************************************************************************
 /*  Debug Levels
@@ -93,11 +94,11 @@ typedef void (*WDRV_WINC_DEBUG_PRINT_CALLBACK)(const char*, ...);
     None.
 */
 
-#define WDRV_WINC_DEBUG_TYPE_NONE       0
-#define WDRV_WINC_DEBUG_TYPE_ERROR      1
-#define WDRV_WINC_DEBUG_TYPE_INFORM     2
-#define WDRV_WINC_DEBUG_TYPE_TRACE      3
-#define WDRV_WINC_DEBUG_TYPE_VERBOSE    4
+#define WDRV_WINC_DEBUG_TYPE_NONE    0
+#define WDRV_WINC_DEBUG_TYPE_ERROR   1
+#define WDRV_WINC_DEBUG_TYPE_INFORM  2
+#define WDRV_WINC_DEBUG_TYPE_TRACE   3
+#define WDRV_WINC_DEBUG_TYPE_VERBOSE 4
 
 // *****************************************************************************
 /*  Debug Verbosity
@@ -113,7 +114,7 @@ typedef void (*WDRV_WINC_DEBUG_PRINT_CALLBACK)(const char*, ...);
 */
 
 #ifndef WDRV_WINC_DEBUG_LEVEL
-#define WDRV_WINC_DEBUG_LEVEL   WDRV_WINC_DEBUG_TYPE_TRACE
+#define WDRV_WINC_DEBUG_LEVEL WDRV_WINC_DEBUG_TYPE_TRACE
 #endif
 
 // *****************************************************************************
@@ -136,16 +137,44 @@ typedef void (*WDRV_WINC_DEBUG_PRINT_CALLBACK)(const char*, ...);
 
 #if (WDRV_WINC_DEBUG_LEVEL >= WDRV_WINC_DEBUG_TYPE_ERROR)
 #undef WDRV_DBG_ERROR_PRINT
-#define WDRV_DBG_ERROR_PRINT(...) do { if (pfWINCDebugPrintCb) { pfWINCDebugPrintCb(__VA_ARGS__); } } while (0)
+#define WDRV_DBG_ERROR_PRINT(...)            \
+    do                                       \
+    {                                        \
+        if (pfWINCDebugPrintCb)              \
+        {                                    \
+            pfWINCDebugPrintCb(SEVERITY_ERROR, LEVEL_INFO, __VA_ARGS__); \
+        }                                    \
+    } while (0)
 #if (WDRV_WINC_DEBUG_LEVEL >= WDRV_WINC_DEBUG_TYPE_INFORM)
 #undef WDRV_DBG_INFORM_PRINT
-#define WDRV_DBG_INFORM_PRINT(...) do { if (pfWINCDebugPrintCb) { pfWINCDebugPrintCb(__VA_ARGS__); } } while (0)
+#define WDRV_DBG_INFORM_PRINT(...)           \
+    do                                       \
+    {                                        \
+        if (pfWINCDebugPrintCb)              \
+        {                                    \
+            pfWINCDebugPrintCb(SEVERITY_INFO, LEVEL_INFO, __VA_ARGS__); \
+        }                                    \
+    } while (0)
 #if (WDRV_WINC_DEBUG_LEVEL >= WDRV_WINC_DEBUG_TYPE_TRACE)
 #undef WDRV_DBG_TRACE_PRINT
-#define WDRV_DBG_TRACE_PRINT(...) do { if (pfWINCDebugPrintCb) { pfWINCDebugPrintCb(__VA_ARGS__); } } while (0)
+#define WDRV_DBG_TRACE_PRINT(...)            \
+    do                                       \
+    {                                        \
+        if (pfWINCDebugPrintCb)              \
+        {                                    \
+            pfWINCDebugPrintCb(SEVERITY_TRACE, LEVEL_INFO, __VA_ARGS__); \
+        }                                    \
+    } while (0)
 #if (WDRV_WINC_DEBUG_LEVEL >= WDRV_WINC_DEBUG_TYPE_VERBOSE)
 #undef WDRV_DBG_VERBOSE_PRINT
-#define WDRV_DBG_VERBOSE_PRINT(...) do { if (pfWINCDebugPrintCb) { pfWINCDebugPrintCb(__VA_ARGS__); } } while (0)
+#define WDRV_DBG_VERBOSE_PRINT(...)          \
+    do                                       \
+    {                                        \
+        if (pfWINCDebugPrintCb)              \
+        {                                    \
+            pfWINCDebugPrintCb(SEVERITY_TRACE, LEVEL_INFO, __VA_ARGS__); \
+        }                                    \
+    } while (0)
 #endif /* WDRV_WINC_DEBUG_TYPE_VERBOSE */
 #endif /* WDRV_WINC_DEBUG_TYPE_TRACE */
 #endif /* WDRV_WINC_DEBUG_TYPE_INFORM */

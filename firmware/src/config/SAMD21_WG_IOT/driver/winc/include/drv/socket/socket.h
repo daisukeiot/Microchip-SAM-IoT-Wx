@@ -1215,7 +1215,7 @@ This example demonstrates the call of the listen socket operation after a succes
                     }
                     else
                     {
-                        M2M_ERR("bind Failure!\n");
+                        M2M_ERR("  M2M: bind Failure!\n");
                         shutdown(sock);
                     }
                 }
@@ -1234,7 +1234,7 @@ This example demonstrates the call of the listen socket operation after a succes
                     }
                     else
                     {
-                        M2M_ERR("listen Failure!\n");
+                        M2M_ERR("  M2M: listen Failure!\n");
                         shutdown(sock);
                     }
                 }
@@ -1252,7 +1252,7 @@ This example demonstrates the call of the listen socket operation after a succes
                 }
                 else
                 {
-                    M2M_ERR("accept failure\n");
+                    M2M_ERR("  M2M: accept failure\n");
                 }
             }
             break;
@@ -1400,7 +1400,7 @@ Socket Callback
         }
         else
         {
-            M2M_DBG("Connection Failed, Error: %d\n",pstrConnect->s8Error");
+            M2M_DBG("  M2M: Connection Failed, Error: %d\n",pstrConnect->s8Error");
             shutdown(pstrNotification->Socket);
         }
     }
@@ -1485,7 +1485,7 @@ int8_t connect(SOCKET sock, struct sockaddr *pstrAddr, uint8_t u8AddrLen);
             }
             else
             {
-                M2M_ERR("accept\n");
+                M2M_ERR("  M2M: accept\n");
             }
         }
         break;
@@ -1592,7 +1592,7 @@ int16_t recv(SOCKET sock, void *pvRecvBuf, uint16_t u16BufLen, uint32_t u32Timeo
                 }
                 else
                 {
-                    M2M_ERR("bind\n");
+                    M2M_ERR("  M2M: bind\n");
                 }
             }
         }

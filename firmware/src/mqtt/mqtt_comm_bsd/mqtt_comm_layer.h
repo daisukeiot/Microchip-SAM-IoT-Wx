@@ -39,16 +39,16 @@
  */
 typedef struct
 {
-   // Todo: The MQTTSTATE variable should be in the context. We have one state in the lib now with many buffer contexts.
-   mqttBuffers mqttDataExchangeBuffers;
-   int8_t* tcpClientSocket;
+    // Todo: The MQTTSTATE variable should be in the context. We have one state in the lib now with many buffer contexts.
+    mqttBuffers mqttDataExchangeBuffers;
+    int8_t*     tcpClientSocket;
 } mqttContext;
 
 
-void MQTT_ClientInitialise(void);
+void         MQTT_ClientInitialise(void);
 mqttContext* MQTT_GetClientConnectionInfo();
 
-bool MQTT_Send(mqttContext *connectionPtr);
-bool MQTT_Close(mqttContext *connectionPtr);
-void MQTT_GetReceivedData(uint8_t *pData, uint8_t len);
+bool MQTT_Send(mqttContext* connectionPtr);
+bool MQTT_Close(mqttContext* connectionPtr);
+void MQTT_GetReceivedData(uint8_t* pData, uint16_t len);
 #endif /* MQTT_COMM_LAYER_H */

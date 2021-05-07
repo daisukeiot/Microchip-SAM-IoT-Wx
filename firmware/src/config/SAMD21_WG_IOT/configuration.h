@@ -59,7 +59,7 @@
 #include "toolchain_specifics.h"
 
 // DOM-IGNORE-BEGIN
-#ifdef __cplusplus  // Provide C++ Compatibility
+#ifdef __cplusplus   // Provide C++ Compatibility
 
 extern "C" {
 
@@ -73,7 +73,6 @@ extern "C" {
 // *****************************************************************************
 
 
-
 // *****************************************************************************
 // *****************************************************************************
 // Section: System Service Configuration
@@ -81,31 +80,27 @@ extern "C" {
 // *****************************************************************************
 
 #define SYS_CMD_ENABLE
-#define SYS_CMD_DEVICE_MAX_INSTANCES       SYS_CONSOLE_DEVICE_MAX_INSTANCES
-#define SYS_CMD_PRINT_BUFFER_SIZE          2048
+#define SYS_CMD_DEVICE_MAX_INSTANCES SYS_CONSOLE_DEVICE_MAX_INSTANCES
+#define SYS_CMD_PRINT_BUFFER_SIZE    1024
 #define SYS_CMD_BUFFER_DMA_READY
 
 
 /* TIME System Service Configuration Options */
-#define SYS_TIME_INDEX_0                            (0)
-#define SYS_TIME_MAX_TIMERS                         (25)
-#define SYS_TIME_HW_COUNTER_WIDTH                   (16)
-#define SYS_TIME_HW_COUNTER_PERIOD                  (65535U)
-#define SYS_TIME_HW_COUNTER_HALF_PERIOD             (SYS_TIME_HW_COUNTER_PERIOD>>1)
-#define SYS_TIME_CPU_CLOCK_FREQUENCY                (48000000)
-#define SYS_TIME_COMPARE_UPDATE_EXECUTION_CYCLES    (200)
+#define SYS_TIME_INDEX_0                         (0)
+#define SYS_TIME_MAX_TIMERS                      (25)
+#define SYS_TIME_HW_COUNTER_WIDTH                (16)
+#define SYS_TIME_HW_COUNTER_PERIOD               (65535U)
+#define SYS_TIME_HW_COUNTER_HALF_PERIOD          (SYS_TIME_HW_COUNTER_PERIOD >> 1)
+#define SYS_TIME_CPU_CLOCK_FREQUENCY             (48000000)
+#define SYS_TIME_COMPARE_UPDATE_EXECUTION_CYCLES (200)
 
-#define SYS_CONSOLE_DEVICE_MAX_INSTANCES   			1
-#define SYS_CONSOLE_UART_MAX_INSTANCES 	   			1
-#define SYS_CONSOLE_USB_CDC_MAX_INSTANCES 	   		0
-#define SYS_CONSOLE_PRINT_BUFFER_SIZE        		2048
-
-
-#define SYS_CONSOLE_INDEX_0                       0
+#define SYS_CONSOLE_DEVICE_MAX_INSTANCES  1
+#define SYS_CONSOLE_UART_MAX_INSTANCES    1
+#define SYS_CONSOLE_USB_CDC_MAX_INSTANCES 0
+#define SYS_CONSOLE_PRINT_BUFFER_SIZE     2048
 
 
-
-
+#define SYS_CONSOLE_INDEX_0 0
 
 
 // *****************************************************************************
@@ -114,8 +109,8 @@ extern "C" {
 // *****************************************************************************
 // *****************************************************************************
 /*** WiFi WINC Driver Configuration ***/
-#define WDRV_WINC_EIC_SOURCE                EIC_PIN_2
-#define WDRV_WINC_SPI_INDEX                 DRV_SPI_INDEX_0
+#define WDRV_WINC_EIC_SOURCE EIC_PIN_2
+#define WDRV_WINC_SPI_INDEX  DRV_SPI_INDEX_0
 #define WDRV_WINC_NETWORK_MODE_SOCKET
 #define WDRV_WINC_DEVICE_WINC1500
 #define WDRV_WINC_DEVICE_SPLIT_INIT
@@ -129,19 +124,18 @@ extern "C" {
 #define WDRV_WINC_DEVICE_HOST_FILE_DOWNLOAD
 #define WDRV_WINC_DEVICE_SOFT_AP_EXT
 #define WDRV_WINC_DEVICE_MULTI_GAIN_TABLE
-#define WDRV_WINC_DEBUG_LEVEL               WDRV_WINC_DEBUG_TYPE_INFORM
-
+//#define WDRV_WINC_DEBUG_LEVEL               WDRV_WINC_DEBUG_TYPE_INFORM
+#define WDRV_WINC_DEBUG_LEVEL WDRV_WINC_DEBUG_TYPE_VERBOSE
 /* SPI Driver Instance 0 Configuration Options */
-#define DRV_SPI_INDEX_0                       0
-#define DRV_SPI_CLIENTS_NUMBER_IDX0           1
+#define DRV_SPI_INDEX_0             0
+#define DRV_SPI_CLIENTS_NUMBER_IDX0 1
 #define DRV_SPI_DMA_MODE
-#define DRV_SPI_XMIT_DMA_CH_IDX0              SYS_DMA_CHANNEL_0
-#define DRV_SPI_RCV_DMA_CH_IDX0               SYS_DMA_CHANNEL_1
-#define DRV_SPI_QUEUE_SIZE_IDX0               4
+#define DRV_SPI_XMIT_DMA_CH_IDX0 SYS_DMA_CHANNEL_0
+#define DRV_SPI_RCV_DMA_CH_IDX0  SYS_DMA_CHANNEL_1
+#define DRV_SPI_QUEUE_SIZE_IDX0  4
 
 /* SPI Driver Common Configuration Options */
-#define DRV_SPI_INSTANCES_NUMBER              1
-
+#define DRV_SPI_INSTANCES_NUMBER 1
 
 
 // *****************************************************************************
@@ -164,7 +158,7 @@ extern "C" {
 #endif
 //DOM-IGNORE-END
 
-#endif // CONFIGURATION_H
+#endif   // CONFIGURATION_H
 /*******************************************************************************
  End of File
 */

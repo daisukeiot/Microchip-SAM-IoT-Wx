@@ -28,23 +28,23 @@
 
 #include <stdint.h>
 
-typedef struct  
+typedef struct
 {
-	uint8_t *start;	
-    uint8_t *currentLocation;
-	uint16_t bufferLength;
-	uint16_t dataLength;
+    uint8_t* start;
+    uint8_t* currentLocation;
+    uint16_t bufferLength;
+    uint16_t dataLength;
 } exchangeBuffer;
 
 
-typedef struct  
+typedef struct
 {
-	exchangeBuffer txbuff;
-	exchangeBuffer rxbuff;
+    exchangeBuffer txbuff;
+    exchangeBuffer rxbuff;
 } mqttBuffers;
 
 
-void MQTT_ExchangeBufferInit(exchangeBuffer *buffer);
-uint16_t MQTT_ExchangeBufferPeek(exchangeBuffer *buffer, uint8_t *data, uint16_t length);
-uint16_t MQTT_ExchangeBufferWrite(exchangeBuffer *buffer, uint8_t *data, uint16_t length);
-uint16_t MQTT_ExchangeBufferRead(exchangeBuffer *buffer, uint8_t *data, uint16_t length);
+void     MQTT_ExchangeBufferInit(exchangeBuffer* buffer);
+uint16_t MQTT_ExchangeBufferPeek(exchangeBuffer* buffer, uint8_t* data, uint16_t length);
+uint16_t MQTT_ExchangeBufferWrite(exchangeBuffer* buffer, uint8_t* data, uint16_t length);
+uint16_t MQTT_ExchangeBufferRead(exchangeBuffer* buffer, uint8_t* data, uint16_t length);

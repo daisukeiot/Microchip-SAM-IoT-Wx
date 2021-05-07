@@ -53,12 +53,12 @@ extern void __attribute__((long_call)) __libc_init_array(void);
 /* Device Vector information is available in interrupt.c file */
 
 /* Optional application-provided functions */
-extern void __attribute__((weak,long_call)) _on_reset(void);
-extern void __attribute__((weak,long_call)) _on_bootstrap(void);
+extern void __attribute__((weak, long_call)) _on_reset(void);
+extern void __attribute__((weak, long_call)) _on_bootstrap(void);
 
 /* Reserved for use by the MPLAB XC32 Compiler */
-extern void __attribute__((weak,long_call)) __xc32_on_reset(void);
-extern void __attribute__((weak,long_call)) __xc32_on_bootstrap(void);
+extern void __attribute__((weak, long_call)) __xc32_on_reset(void);
+extern void __attribute__((weak, long_call)) __xc32_on_bootstrap(void);
 
 
 /**
@@ -68,18 +68,27 @@ extern void __attribute__((weak,long_call)) __xc32_on_bootstrap(void);
 void __attribute__((optimize("-O1"), section(".text.Reset_Handler"), long_call, noreturn)) Reset_Handler(void)
 {
 #ifdef SCB_VTOR_TBLOFF_Msk
-    uint32_t *pSrc;
+    uint32_t* pSrc;
 #endif
 
-#if defined (__REINIT_STACK_POINTER)
+#if defined(__REINIT_STACK_POINTER)
     /* Initialize SP from linker-defined _stack symbol. */
-    __asm__ volatile ("ldr sp, =_stack" : : : "sp");
+    __asm__ volatile("ldr sp, =_stack"
+                     :
+                     :
+                     : "sp");
 
 #ifdef SCB_VTOR_TBLOFF_Msk
     /* Buy stack for locals */
-    __asm__ volatile ("sub sp, sp, #8" : : : "sp");
+    __asm__ volatile("sub sp, sp, #8"
+                     :
+                     :
+                     : "sp");
 #endif
-    __asm__ volatile ("add r7, sp, #0" : : : "r7");
+    __asm__ volatile("add r7, sp, #0"
+                     :
+                     :
+                     : "r7");
 #endif
 
 
@@ -94,23 +103,19 @@ void __attribute__((optimize("-O1"), section(".text.Reset_Handler"), long_call, 
         __xc32_on_reset();
 
 
-
-
     /* Initialize data after TCM is enabled.
      * Data initialization from the XC32 .dinit template */
     __pic32c_data_initialization();
 
 
-#  ifdef SCB_VTOR_TBLOFF_Msk
+#ifdef SCB_VTOR_TBLOFF_Msk
     /*  Set the vector-table base address in FLASH */
-    pSrc = (uint32_t *) & __svectors;
-    SCB->VTOR = ((uint32_t) pSrc & SCB_VTOR_TBLOFF_Msk);
-#  endif /* SCB_VTOR_TBLOFF_Msk */
+    pSrc      = (uint32_t*)&__svectors;
+    SCB->VTOR = ((uint32_t)pSrc & SCB_VTOR_TBLOFF_Msk);
+#endif /* SCB_VTOR_TBLOFF_Msk */
 
     /* Initialize the C library */
     __libc_init_array();
-
-
 
 
     /* Call the optional application-provided _on_bootstrap() function. */
@@ -132,5 +137,7 @@ void __attribute__((optimize("-O1"), section(".text.Reset_Handler"), long_call, 
     __builtin_software_breakpoint();
 #endif
     /* Infinite loop */
-    while (1) {}
+    while (1)
+    {
+    }
 }

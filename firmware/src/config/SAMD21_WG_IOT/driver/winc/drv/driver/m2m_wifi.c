@@ -125,7 +125,7 @@ static void m2m_wifi_cb(uint8_t u8OpCode, uint16_t u16DataSize, uint32_t u32Addr
         uint32_t  u32ConflictedIP;
         if(hif_receive(u32Addr, (uint8_t *)&u32ConflictedIP, sizeof(u32ConflictedIP), 0) == M2M_SUCCESS)
         {
-            M2M_INFO("Conflicted IP \" %u.%u.%u.%u \"\r\n",
+            M2M_INFO("  M2M: Conflicted IP \" %u.%u.%u.%u \"",
                 BYTE_0(u32ConflictedIP), BYTE_1(u32ConflictedIP), BYTE_2(u32ConflictedIP), BYTE_3(u32ConflictedIP));
             if (gpfAppWifiCb)
                 gpfAppWifiCb(M2M_WIFI_RESP_IP_CONFLICT, NULL);
@@ -249,7 +249,7 @@ static void m2m_wifi_cb(uint8_t u8OpCode, uint16_t u16DataSize, uint32_t u32Addr
     }
     else
     {
-        M2M_ERR("REQ Not defined %d\r\n",u8OpCode);
+        M2M_ERR("  M2M: REQ Not defined %d",u8OpCode);
     }
 }
 
@@ -275,21 +275,21 @@ static int8_t m2m_validate_ap_parameters(const tstrM2MAPModeConfig* pstrM2MAPMod
     /* Check for incoming pointer */
     if(pstrM2MAPModeConfig == NULL)
     {
-        M2M_ERR("INVALID POINTER\r\n");
+        M2M_ERR("  M2M: INVALID POINTER");
         s8Ret = M2M_ERR_FAIL;
         goto ERR1;
     }
     /* Check for SSID */
     if((strlen((const char*)pstrM2MAPModeConfig->strApConfig.au8SSID) <= 0) || (strlen((const char*)pstrM2MAPModeConfig->strApConfig.au8SSID) >= M2M_MAX_SSID_LEN))
     {
-        M2M_ERR("INVALID SSID\r\n");
+        M2M_ERR("  M2M: INVALID SSID");
         s8Ret = M2M_ERR_FAIL;
         goto ERR1;
     }
     /* Check for Channel */
     if(pstrM2MAPModeConfig->strApConfig.u8ListenChannel > M2M_WIFI_CH_14 || pstrM2MAPModeConfig->strApConfig.u8ListenChannel < M2M_WIFI_CH_1)
     {
-        M2M_ERR("INVALID CH\r\n");
+        M2M_ERR("  M2M: INVALID CH");
         s8Ret = M2M_ERR_FAIL;
         goto ERR1;
     }
@@ -298,7 +298,7 @@ static int8_t m2m_validate_ap_parameters(const tstrM2MAPModeConfig* pstrM2MAPMod
     {
         if(!(pstrM2MAPModeConfig->strApConfig.au8DHCPServerIP[2]))
         {
-            M2M_ERR("INVALID DHCP SERVER IP\r\n");
+            M2M_ERR("  M2M: INVALID DHCP SERVER IP");
             s8Ret = M2M_ERR_FAIL;
             goto ERR1;
         }
@@ -313,7 +313,7 @@ static int8_t m2m_validate_ap_parameters(const tstrM2MAPModeConfig* pstrM2MAPMod
         /* Check for WEP Key index */
         if((pstrM2MAPModeConfig->strApConfig.u8KeyIndx == 0) || (pstrM2MAPModeConfig->strApConfig.u8KeyIndx > WEP_KEY_MAX_INDEX))
         {
-            M2M_ERR("INVALID KEY INDEX\r\n");
+            M2M_ERR("  M2M: INVALID KEY INDEX");
             s8Ret = M2M_ERR_FAIL;
             goto ERR1;
         }
@@ -322,14 +322,14 @@ static int8_t m2m_validate_ap_parameters(const tstrM2MAPModeConfig* pstrM2MAPMod
             (pstrM2MAPModeConfig->strApConfig.u8KeySz != WEP_104_KEY_STRING_SIZE)
         )
         {
-            M2M_ERR("INVALID KEY STRING SIZE\r\n");
+            M2M_ERR("  M2M: INVALID KEY STRING SIZE");
             s8Ret = M2M_ERR_FAIL;
             goto ERR1;
         }
 
         if((strlen((const char*)pstrM2MAPModeConfig->strApConfig.au8WepKey) <= 0) || (strlen((const char*)pstrM2MAPModeConfig->strApConfig.au8WepKey) > WEP_104_KEY_STRING_SIZE))
         {
-            M2M_ERR("INVALID KEY SIZE\r\n");
+            M2M_ERR("  M2M: INVALID KEY SIZE");
             s8Ret = M2M_ERR_FAIL;
             goto ERR1;
         }
@@ -339,14 +339,14 @@ static int8_t m2m_validate_ap_parameters(const tstrM2MAPModeConfig* pstrM2MAPMod
         /* Check for WPA Key size */
         if( ((pstrM2MAPModeConfig->strApConfig.u8KeySz + 1) < M2M_MIN_PSK_LEN) || ((pstrM2MAPModeConfig->strApConfig.u8KeySz + 1) > M2M_MAX_PSK_LEN))
         {
-            M2M_ERR("INVALID WPA KEY SIZE\r\n");
+            M2M_ERR("  M2M: INVALID WPA KEY SIZE");
             s8Ret = M2M_ERR_FAIL;
             goto ERR1;
         }
     }
     else
     {
-        M2M_ERR("INVALID AUTHENTICATION MODE\r\n");
+        M2M_ERR("  M2M: INVALID AUTHENTICATION MODE");
         s8Ret = M2M_ERR_FAIL;
         goto ERR1;
     }
@@ -360,35 +360,35 @@ static int8_t m2m_validate_scan_options(tstrM2MScanOption* ptstrM2MScanOption)
     /* Check for incoming pointer */
     if(ptstrM2MScanOption == NULL)
     {
-        M2M_ERR("INVALID POINTER\r\n");
+        M2M_ERR("  M2M: INVALID POINTER");
         s8Ret = M2M_ERR_FAIL;
         goto ERR;
     }
     /* Check for valid No of slots */
     if(ptstrM2MScanOption->u8NumOfSlot == 0)
     {
-        M2M_ERR("INVALID No of scan slots! %d\r\n",ptstrM2MScanOption->u8NumOfSlot);
+        M2M_ERR("  M2M: INVALID No of scan slots! %d",ptstrM2MScanOption->u8NumOfSlot);
         s8Ret = M2M_ERR_FAIL;
         goto ERR;
     }
     /* Check for valid time of slots */
     if(ptstrM2MScanOption->u8SlotTime < 10 || ptstrM2MScanOption->u8SlotTime > 250)
     {
-        M2M_ERR("INVALID scan slot time! %d\r\n",ptstrM2MScanOption->u8SlotTime);
+        M2M_ERR("  M2M: INVALID scan slot time! %d",ptstrM2MScanOption->u8SlotTime);
         s8Ret = M2M_ERR_FAIL;
         goto ERR;
     }
     /* Check for valid No of probe requests per slot */
     if((ptstrM2MScanOption->u8ProbesPerSlot == 0)||(ptstrM2MScanOption->u8ProbesPerSlot > M2M_SCAN_DEFAULT_NUM_PROBE))
     {
-        M2M_ERR("INVALID No of probe requests per scan slot %d\r\n",ptstrM2MScanOption->u8ProbesPerSlot);
+        M2M_ERR("  M2M: INVALID No of probe requests per scan slot %d",ptstrM2MScanOption->u8ProbesPerSlot);
         s8Ret = M2M_ERR_FAIL;
         goto ERR;
     }
     /* Check for valid RSSI threshold */
     if(ptstrM2MScanOption->s8RssiThresh  >= 0)
     {
-        M2M_ERR("INVALID RSSI threshold %d\r\n",ptstrM2MScanOption->s8RssiThresh);
+        M2M_ERR("  M2M: INVALID RSSI threshold %d",ptstrM2MScanOption->s8RssiThresh);
         s8Ret = M2M_ERR_FAIL;
     }
 
@@ -453,16 +453,16 @@ int8_t m2m_wifi_init_start(tstrWifiInitParam * pWifiInitParam)
 
     ret = nm_get_firmware_full_info(&strtmp);
 
-    M2M_INFO("\nWINC1500 Firmware Data:\r\n");
-    M2M_INFO("Firmware Ver: %u.%u.%u SVN Rev %u\r\n", strtmp.u8FirmwareMajor, strtmp.u8FirmwareMinor, strtmp.u8FirmwarePatch, strtmp.u16FirmwareSvnNum);
-    M2M_INFO("Firmware Built at %s Time %s\r\n", strtmp.BuildDate, strtmp.BuildTime);
-    M2M_INFO("Firmware Min Driver Ver: %u.%u.%u\r\n", strtmp.u8DriverMajor, strtmp.u8DriverMinor, strtmp.u8DriverPatch);
-    M2M_INFO("Driver Ver: %u.%u.%u\r\n", M2M_RELEASE_VERSION_MAJOR_NO, M2M_RELEASE_VERSION_MINOR_NO, M2M_RELEASE_VERSION_PATCH_NO);
-    M2M_INFO("Driver Built at %s Time %s\r\n\r\n", __DATE__, __TIME__);
+    M2M_INFO("  M2M: WINC1500 Firmware Data:");
+    M2M_INFO("  M2M: Firmware Ver: %u.%u.%u SVN Rev %u", strtmp.u8FirmwareMajor, strtmp.u8FirmwareMinor, strtmp.u8FirmwarePatch, strtmp.u16FirmwareSvnNum);
+    M2M_INFO("  M2M: Firmware Built at %s Time %s", strtmp.BuildDate, strtmp.BuildTime);
+    M2M_INFO("  M2M: Firmware Min Driver Ver: %u.%u.%u", strtmp.u8DriverMajor, strtmp.u8DriverMinor, strtmp.u8DriverPatch);
+    M2M_INFO("  M2M: Driver Ver: %u.%u.%u", M2M_RELEASE_VERSION_MAJOR_NO, M2M_RELEASE_VERSION_MINOR_NO, M2M_RELEASE_VERSION_PATCH_NO);
+    M2M_INFO("  M2M: Driver Built at %s Time %s", __DATE__, __TIME__);
 
     if(M2M_ERR_FW_VER_MISMATCH == ret)
     {
-        M2M_ERR("Mismatch Firmware Version\r\n");
+        M2M_ERR("  M2M: Mismatch Firmware Version");
     }
 
     goto _EXIT0;
@@ -1205,7 +1205,7 @@ int8_t m2m_wifi_req_client_ctrl(uint8_t u8Cmd)
     strCmd.u8cmd = u8Cmd;
     ret = hif_send(M2M_REQ_GROUP_WIFI, M2M_WIFI_REQ_CLIENT_CTRL, (uint8_t*)&strCmd, sizeof(tstrM2Mservercmd), NULL, 0, 0);
 #else
-    M2M_ERR("_PS_SERVER_ is not defined\n");
+    M2M_ERR("  M2M: _PS_SERVER_ is not defined\n");
 #endif
     return ret;
 }
@@ -1227,7 +1227,7 @@ int8_t m2m_wifi_req_server_init(uint8_t ch)
     strServer.u8Channel = ch;
     ret = hif_send(M2M_REQ_GROUP_WIFI,M2M_WIFI_REQ_SERVER_INIT, (uint8_t*)&strServer, sizeof(tstrM2mServerInit), NULL, 0, 0);
 #else
-    M2M_ERR("_PS_SERVER_ is not defined\n");
+    M2M_ERR("  M2M: _PS_SERVER_ is not defined\n");
 #endif
     return ret;
 }
@@ -1242,7 +1242,7 @@ int8_t m2m_wifi_p2p(uint8_t u8Channel)
     }
     else
     {
-        M2M_ERR("Listen channel should only be M2M_WIFI_CH_1/6/11\r\n");
+        M2M_ERR("  M2M: Listen channel should only be M2M_WIFI_CH_1/6/11");
         ret = M2M_ERR_FAIL;
     }
     return ret;
@@ -1443,7 +1443,7 @@ int8_t m2m_wifi_set_sleep_mode(uint8_t PsTyp, uint8_t BcastEn)
     strPs.u8PsType = PsTyp;
     strPs.u8BcastEn = BcastEn;
     ret = hif_send(M2M_REQ_GROUP_WIFI, M2M_WIFI_REQ_SLEEP, (uint8_t*) &strPs,sizeof(tstrM2mPsType), NULL, 0, 0);
-    M2M_INFO("POWER SAVE %d\r\n",PsTyp);
+    M2M_INFO("  M2M: POWER SAVE %d",PsTyp);
     hif_set_sleep_mode(PsTyp);
     return ret;
 }
@@ -1584,7 +1584,7 @@ int8_t m2m_wifi_start_provision_mode_ext(tstrM2MAPModeConfig *pstrAPModeConfig, 
 			memcpy((uint8_t*)&strProvConfig.strApConfigExt, (uint8_t*)&pstrAPModeConfig->strApConfigExt, sizeof(tstrM2MAPConfigExt));
             if((strlen((const char*)pcHttpServerDomainName) <= 0) || (NULL == pcHttpServerDomainName))
             {
-                M2M_ERR("INVALID DOMAIN NAME\r\n");
+                M2M_ERR("  M2M: INVALID DOMAIN NAME");
                 goto ERR1;
             }
             memcpy((uint8_t*)strProvConfig.acHttpServerDomainName, (uint8_t*)pcHttpServerDomainName, 64);
@@ -1759,7 +1759,7 @@ int8_t m2m_wifi_prng_get_random_bytes(uint8_t * pu8PrngBuff,uint16_t u16PrngSize
     }
     else
     {
-        M2M_ERR("PRNG Buffer exceeded maximum size %d or NULL Buffer\r\n",u16PrngSize);
+        M2M_ERR("  M2M: PRNG Buffer exceeded maximum size %d or NULL Buffer",u16PrngSize);
     }
     return ret;
 }
@@ -1814,7 +1814,7 @@ int8_t m2m_wifi_enable_mac_mcast(uint8_t* pu8MulticastMacAddress, uint8_t u8AddR
     {
         strMulticastMac.u8AddRemove = u8AddRemove;
         memcpy(strMulticastMac.au8macaddress,pu8MulticastMacAddress,M2M_MAC_ADDRES_LEN);
-        M2M_DBG("mac multicast: %x:%x:%x:%x:%x:%x\r\n",strMulticastMac.au8macaddress[0],strMulticastMac.au8macaddress[1],strMulticastMac.au8macaddress[2],strMulticastMac.au8macaddress[3],strMulticastMac.au8macaddress[4],strMulticastMac.au8macaddress[5]);
+        M2M_DBG("  M2M: mac multicast: %x:%x:%x:%x:%x:%x",strMulticastMac.au8macaddress[0],strMulticastMac.au8macaddress[1],strMulticastMac.au8macaddress[2],strMulticastMac.au8macaddress[3],strMulticastMac.au8macaddress[4],strMulticastMac.au8macaddress[5]);
         s8ret = hif_send(M2M_REQ_GROUP_WIFI, M2M_WIFI_REQ_SET_MAC_MCAST, (uint8_t *)&strMulticastMac,sizeof(tstrM2MMulticastMac),NULL,0,0);
     }
 
@@ -1848,7 +1848,7 @@ int8_t  m2m_wifi_set_receive_buffer(void* pvBuffer,uint16_t u16BufferLen)
     else
     {
         s8ret = M2M_ERR_FAIL;
-        M2M_ERR("Buffer NULL pointer\r\n");
+        M2M_ERR("  M2M: Buffer NULL pointer");
     }
     return s8ret;
 }

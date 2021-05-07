@@ -135,7 +135,7 @@ static void m2m_ota_cb(uint8_t u8OpCode, uint16_t u16DataSize, uint32_t u32Addr)
         {
             if(strOtaHostFileGetStatusResp.u8OtaFileGetStatus == OTA_STATUS_SUCCESS) {
                 gu8CurrFileHandlerID = strOtaHostFileGetStatusResp.u8CFHandler;
-                M2M_INFO("Generated HostFileHandlerID is %u\n", gu8CurrFileHandlerID);
+                M2M_INFO("  M2M: Generated HostFileHandlerID is %u\n", gu8CurrFileHandlerID);
             }
 
             if(gpfHFDGetCb) {
@@ -168,7 +168,7 @@ static void m2m_ota_cb(uint8_t u8OpCode, uint16_t u16DataSize, uint32_t u32Addr)
     }
     else
     {
-        M2M_ERR("Invalid OTA resp %d ?\r\n",u8OpCode);
+        M2M_ERR("  M2M: Invalid OTA resp %d ?",u8OpCode);
     }
 }
 /*!
@@ -386,7 +386,7 @@ int8_t m2m_ota_host_file_get(char *pcDownloadUrl, tpfFileGetCb pfHFDGetCb)
 
     if((NULL == pfHFDGetCb) || (0 == u16DUrlSize))
     {
-        M2M_ERR("Invalid parameters.\n");
+        M2M_ERR("  M2M: Invalid parameters.\n");
         goto EXIT;
     }
 
@@ -395,7 +395,7 @@ int8_t m2m_ota_host_file_get(char *pcDownloadUrl, tpfFileGetCb pfHFDGetCb)
     else
         u16DUrlSize++;
 
-    M2M_INFO("GetHostFile - URL: %s, urlSize: %u\n", pcDownloadUrl, u16DUrlSize);
+    M2M_INFO("  M2M: GetHostFile - URL: %s, urlSize: %u\n", pcDownloadUrl, u16DUrlSize);
 
     s8Ret = hif_send(M2M_REQ_GROUP_OTA, M2M_OTA_REQ_HOST_FILE_DOWNLOAD, (uint8_t*)pcDownloadUrl, u16DUrlSize, NULL, 0, 0);
     if(s8Ret == M2M_SUCCESS)
@@ -484,7 +484,7 @@ int8_t m2m_ota_host_file_read_spi(uint8_t u8Handler, uint8_t *pu8Buff, uint32_t 
     if(WIFI_STATE_INIT != m2m_wifi_get_state())
     {
         s8Ret = M2M_ERR_FAIL;
-        M2M_ERR("WINC is not in an appropriate state for this operation!\n");
+        M2M_ERR("  M2M: WINC is not in an appropriate state for this operation!\n");
         goto EXIT;
     }
 
@@ -505,7 +505,7 @@ int8_t m2m_ota_host_file_read_spi(uint8_t u8Handler, uint8_t *pu8Buff, uint32_t 
     s8Ret = spi_flash_read(pu8Buff, u32FlashHFDStart + FLASH_SECTOR_SZ + u32Offset, u32Size);
 
     if(M2M_SUCCESS != s8Ret)
-        M2M_ERR("Unable to read SPI Flash\n");
+        M2M_ERR("  M2M: Unable to read SPI Flash\n");
 
 EXIT:
     return s8Ret;

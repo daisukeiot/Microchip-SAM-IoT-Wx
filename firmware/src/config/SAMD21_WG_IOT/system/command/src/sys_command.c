@@ -56,7 +56,7 @@
 #include "system/command/sys_command.h"
 #include "system/console/sys_console.h"
 #include "system/debug/sys_debug.h"
-
+#include "led.h"
 // *****************************************************************************
 // *****************************************************************************
 // Section: Type Definitions
@@ -67,17 +67,17 @@ typedef struct _tagHistCmdNode
 {
     struct _tagHistCmdNode* next;
     struct _tagHistCmdNode* prev;
-    char    cmdBuff[SYS_CMD_MAX_LENGTH + 1];  // command itself
-}histCmdNode;   // simple command history
+    char                    cmdBuff[SYS_CMD_MAX_LENGTH + 1];   // command itself
+} histCmdNode;                                                 // simple command history
 
 typedef struct
 {
-    histCmdNode*    head;
-    histCmdNode*    tail;
-}histCmdList;     // doubly linked history command list
+    histCmdNode* head;
+    histCmdNode* tail;
+} histCmdList;   // doubly linked history command list
 
 // standard VT100 key escape sequences
-#define                 VT100_MAX_ESC_SEQ_SIZE    4               // max VT100 escape sequence size that is processed
+#define VT100_MAX_ESC_SEQ_SIZE 4   // max VT100 escape sequence size that is processed
 
 // currently supported sequences received from the terminal:
 // up arrow:    ESC [ A
@@ -92,26 +92,26 @@ typedef struct
 //
 
 
-#define         LINE_TERM       "\r\n"          // line terminator
-#define         _promptStr      ">"             // prompt string
+#define LINE_TERM  "\r\n"   // line terminator
+#define _promptStr ">"      // prompt string
 
-// descriptor of the command I/O node 
+// descriptor of the command I/O node
 typedef struct SYS_CMD_IO_DCPT
 {
     SYS_CMD_DEVICE_NODE devNode;
     // internally maintained data
-    struct SYS_CMD_IO_DCPT* next;   // linked list node
-    const struct _KEY_SEQ_DCPT* pSeqDcpt; // current escape sequence in progress 
-    int16_t         seqChars;   // # of characters from the escape sequence
-    char            seqBuff[VT100_MAX_ESC_SEQ_SIZE + 2];     // 0x1b + escape sequence + \0
-    char*           cmdPnt; // current pointer
-    char*           cmdEnd; // command end
-    char            cmdBuff[SYS_CMD_MAX_LENGTH + 1];   // buffer holding the command
-    char            ctrlBuff[SYS_CMD_MAX_LENGTH + 10]; // buffer for terminal control
+    struct SYS_CMD_IO_DCPT*     next;                                  // linked list node
+    const struct _KEY_SEQ_DCPT* pSeqDcpt;                              // current escape sequence in progress
+    int16_t                     seqChars;                              // # of characters from the escape sequence
+    char                        seqBuff[VT100_MAX_ESC_SEQ_SIZE + 2];   // 0x1b + escape sequence + \0
+    char*                       cmdPnt;                                // current pointer
+    char*                       cmdEnd;                                // command end
+    char                        cmdBuff[SYS_CMD_MAX_LENGTH + 1];       // buffer holding the command
+    char                        ctrlBuff[SYS_CMD_MAX_LENGTH + 10];     // buffer for terminal control
     // history
-    histCmdList     histList;                           // arranged as list
-    histCmdNode*    currHistN;      // current history node
-    histCmdNode     histArray[COMMAND_HISTORY_DEPTH];   // array of history commands
+    histCmdList  histList;                           // arranged as list
+    histCmdNode* currHistN;                          // current history node
+    histCmdNode  histArray[COMMAND_HISTORY_DEPTH];   // array of history commands
 } SYS_CMD_IO_DCPT;
 
 // Defines the list structure to store a list of command instances.
@@ -126,12 +126,12 @@ typedef struct
 // Defines the command table structure for the Command Processor System Service.
 typedef struct
 {
-    int                         nCmds;          // number of commands available in the table
-    const SYS_CMD_DESCRIPTOR*   pCmd;      // pointer to an array of command descriptors
-    const char*                 cmdGroupName;   // name identifying the commands
-    const char*                 cmdMenuStr;     // help string
+    int                       nCmds;          // number of commands available in the table
+    const SYS_CMD_DESCRIPTOR* pCmd;           // pointer to an array of command descriptors
+    const char*               cmdGroupName;   // name identifying the commands
+    const char*               cmdMenuStr;     // help string
 
-} SYS_CMD_DESCRIPTOR_TABLE;                 // table containing the supported commands
+} SYS_CMD_DESCRIPTOR_TABLE;   // table containing the supported commands
 
 // *****************************************************************************
 // *****************************************************************************
@@ -141,22 +141,22 @@ typedef struct
 
 static SYS_CMD_DEVICE_LIST cmdIODevList = {0, 0};
 
-static char printBuff[SYS_CMD_PRINT_BUFFER_SIZE] SYS_CMD_BUFFER_DMA_READY;
-static int printBuffPtr = 0;
+static char cmdPrintBuff[SYS_CMD_PRINT_BUFFER_SIZE] SYS_CMD_BUFFER_DMA_READY;
+static int  cmdPrintBuffPtr = 0;
 
-static SYS_CMD_INIT _cmdInitData;       // data the command processor has been initialized with
+static SYS_CMD_INIT _cmdInitData;   // data the command processor has been initialized with
 
-static SYS_CMD_DESCRIPTOR_TABLE   _usrCmdTbl[MAX_CMD_GROUP] = { {0} };    // current command table
+static SYS_CMD_DESCRIPTOR_TABLE _usrCmdTbl[MAX_CMD_GROUP] = {{0}};   // current command table
 
 // function processing the VT100 escape sequence
 typedef void (*_keySeqProcess)(SYS_CMD_IO_DCPT* pCmdIO, const struct _KEY_SEQ_DCPT* pSeqDcpt);
 
 typedef struct _KEY_SEQ_DCPT
 {
-    char*           keyCode;    // pointer to the key code sequence
-    _keySeqProcess  keyFnc;     // key processing functions
-    int             keySize;    // # of characters in the sequence
-}KEY_SEQ_DCPT;
+    char*          keyCode;   // pointer to the key code sequence
+    _keySeqProcess keyFnc;    // key processing functions
+    int            keySize;   // # of characters in the sequence
+} KEY_SEQ_DCPT;
 
 
 static void _keyUpProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt);
@@ -168,58 +168,57 @@ static void _keyEndProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt
 
 // dummy table holding the escape sequences + expected sequence size
 // detection of a sequence is done using only the first 3 characters
-#define         VT100_DETECT_SEQ_SIZE    3
-static const KEY_SEQ_DCPT keySeqTbl[] = 
-{
-    // keyCode      keyFnc              keySize
-    {"\x1b[A",      _keyUpProcess,      sizeof("\x1b[A") - 1},
-    {"\x1b[B",      _keyDownProcess,    sizeof("\x1b[B") - 1},
-    {"\x1b[C",      _keyRightProcess,   sizeof("\x1b[C") - 1},
-    {"\x1b[D",      _keyLeftProcess,    sizeof("\x1b[D") - 1},
-    {"\x1b[1~",     _keyHomeProcess,    sizeof("\x1b[1~") - 1},
-    {"\x1b[4~",     _keyEndProcess,     sizeof("\x1b[4~") - 1},
+#define VT100_DETECT_SEQ_SIZE 3
+static const KEY_SEQ_DCPT keySeqTbl[] =
+    {
+        // keyCode      keyFnc              keySize
+        {"\x1b[A", _keyUpProcess, sizeof("\x1b[A") - 1},
+        {"\x1b[B", _keyDownProcess, sizeof("\x1b[B") - 1},
+        {"\x1b[C", _keyRightProcess, sizeof("\x1b[C") - 1},
+        {"\x1b[D", _keyLeftProcess, sizeof("\x1b[D") - 1},
+        {"\x1b[1~", _keyHomeProcess, sizeof("\x1b[1~") - 1},
+        {"\x1b[4~", _keyEndProcess, sizeof("\x1b[4~") - 1},
 };
-
 
 
 // prototypes
 
-static void     CommandReset(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
-static void     CommandQuit(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);              // command quit
-static void     CommandHelp(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);              // help
+static void CommandReset(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);
+static void CommandQuit(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);   // command quit
+static void CommandHelp(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv);   // help
 
-static int      StringToArgs(char *pRawString, char *argv[]); // Convert string to argc & argv[]
-static bool     ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO);      // parse the command buffer
+static int  StringToArgs(char* pRawString, char* argv[]);   // Convert string to argc & argv[]
+static bool ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO);        // parse the command buffer
 
-static void     DisplayNodeMsg(SYS_CMD_IO_DCPT* pCmdIO, histCmdNode* pNext);
+static void DisplayNodeMsg(SYS_CMD_IO_DCPT* pCmdIO, histCmdNode* pNext);
 
-static void     CmdAddHead(histCmdList* pL, histCmdNode* pN);
+static void         CmdAddHead(histCmdList* pL, histCmdNode* pN);
 static histCmdNode* CmdRemoveTail(histCmdList* pL);
 
-static void     CmdAdjustPointers(SYS_CMD_IO_DCPT* pCmdIO);
+static void CmdAdjustPointers(SYS_CMD_IO_DCPT* pCmdIO);
 
 static void SendCommandMessage(const void* cmdIoParam, const char* str);
 static void SendCommandPrint(const void* cmdIoParam, const char* format, ...);
 static void SendCommandCharacter(const void* cmdIoParam, char c);
-static int IsCommandReady(const void* cmdIoParam);
+static int  IsCommandReady(const void* cmdIoParam);
 static char GetCommandCharacter(const void* cmdIoParam);
 static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO);
 
 const SYS_CMD_API sysConsoleApi =
-{
-    .msg = SendCommandMessage,
-    .print = SendCommandPrint,
-    .putc = SendCommandCharacter,
-    .isRdy = IsCommandReady,
-    .getc = GetCommandCharacter,
+    {
+        .msg   = SendCommandMessage,
+        .print = SendCommandPrint,
+        .putc  = SendCommandCharacter,
+        .isRdy = IsCommandReady,
+        .getc  = GetCommandCharacter,
 };
 
 // built-in command table
-static const SYS_CMD_DESCRIPTOR    _builtinCmdTbl[]=
-{
-    {"reset",   CommandReset,   ": Reset host"},
-    {"q",       CommandQuit,    ": quit command processor"},
-    {"help",    CommandHelp,    ": help"},
+static const SYS_CMD_DESCRIPTOR _builtinCmdTbl[] =
+    {
+        {"reset", CommandReset, ": Reset host"},
+        {"q", CommandQuit, ": quit command processor"},
+        {"help", CommandHelp, ": help"},
 };
 
 // *****************************************************************************
@@ -255,16 +254,16 @@ static const SYS_CMD_DESCRIPTOR    _builtinCmdTbl[]=
   Remarks:
     This routine should only be called once during system initialization.
 */
-bool SYS_CMD_Initialize(const SYS_MODULE_INIT * const init )
+bool SYS_CMD_Initialize(const SYS_MODULE_INIT* const init)
 {
-    SYS_CMD_INIT *initConfig = (SYS_CMD_INIT*)init;
+    SYS_CMD_INIT* initConfig = (SYS_CMD_INIT*)init;
 
     if (initConfig == 0)
     {
         return false;
     }
 
-    _cmdInitData = *initConfig; // save a copy of the initialization data
+    _cmdInitData = *initConfig;   // save a copy of the initialization data
 
 
     cmdIODevList.head = cmdIODevList.tail = 0;
@@ -283,21 +282,21 @@ bool SYS_CMD_READY_TO_READ(void)
 }
 
 // add new command group
-bool  SYS_CMD_ADDGRP(const SYS_CMD_DESCRIPTOR* pCmdTbl, int nCmds, const char* groupName, const char* menuStr)
+bool SYS_CMD_ADDGRP(const SYS_CMD_DESCRIPTOR* pCmdTbl, int nCmds, const char* groupName, const char* menuStr)
 {
     int i, groupIx = -1, emptyIx = -1;
     int insertIx;
 
     // Check if there is space for new command group; If this table already added, also simply update.
-    for (i=0; i<MAX_CMD_GROUP; i++)
+    for (i = 0; i < MAX_CMD_GROUP; i++)
     {
-        if(_usrCmdTbl[i].pCmd == 0)
+        if (_usrCmdTbl[i].pCmd == 0)
         {   // empty slot
             emptyIx = i;
         }
-        else if(_usrCmdTbl[i].pCmd == pCmdTbl)
+        else if (_usrCmdTbl[i].pCmd == pCmdTbl)
         {   // already have this group; sanity check against the group name
-            if(strcmp(groupName, _usrCmdTbl[i].cmdGroupName) != 0)
+            if (strcmp(groupName, _usrCmdTbl[i].cmdGroupName) != 0)
             {   // name mismatch
                 return false;
             }
@@ -312,7 +311,7 @@ bool  SYS_CMD_ADDGRP(const SYS_CMD_DESCRIPTOR* pCmdTbl, int nCmds, const char* g
     {
         insertIx = groupIx;
     }
-    else if(emptyIx != -1)
+    else if (emptyIx != -1)
     {
         insertIx = emptyIx;
     }
@@ -321,19 +320,18 @@ bool  SYS_CMD_ADDGRP(const SYS_CMD_DESCRIPTOR* pCmdTbl, int nCmds, const char* g
         return false;
     }
 
-    _usrCmdTbl[insertIx].pCmd = pCmdTbl;
-    _usrCmdTbl[insertIx].nCmds = nCmds;
+    _usrCmdTbl[insertIx].pCmd         = pCmdTbl;
+    _usrCmdTbl[insertIx].nCmds        = nCmds;
     _usrCmdTbl[insertIx].cmdGroupName = groupName;
-    _usrCmdTbl[insertIx].cmdMenuStr = menuStr;
+    _usrCmdTbl[insertIx].cmdMenuStr   = menuStr;
     return true;
-
 }
 
 // Maintains the Command Processor System Service's internal state machine.
 bool SYS_CMD_Tasks(void)
 {
     SYS_CMD_IO_DCPT* pCmdIO;
-    for(pCmdIO = cmdIODevList.head; pCmdIO != 0; pCmdIO = pCmdIO->next)
+    for (pCmdIO = cmdIODevList.head; pCmdIO != 0; pCmdIO = pCmdIO->next)
     {
         RunCmdTask(pCmdIO);
     }
@@ -343,15 +341,15 @@ bool SYS_CMD_Tasks(void)
 
 static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO)
 {
-    char newCh;
-    int ix;
+    char                newCh;
+    int                 ix;
     const KEY_SEQ_DCPT *pKeyDcpt, *pFoundSeq;
-    const SYS_CMD_API* pCmdApi = pCmdIO->devNode.pCmdApi;
-    const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
+    const SYS_CMD_API*  pCmdApi    = pCmdIO->devNode.pCmdApi;
+    const void*         cmdIoParam = pCmdIO->devNode.cmdIoParam;
 
 
     // Check if there's characters available
-    if(!(*pCmdApi->isRdy)(cmdIoParam))
+    if (!(*pCmdApi->isRdy)(cmdIoParam))
     {
         return;
     }
@@ -359,26 +357,26 @@ static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO)
     // read the character
     newCh = (*pCmdApi->getc)(cmdIoParam); /* Read data from console. */
 
-    if(pCmdIO->seqChars != 0)
+    if (pCmdIO->seqChars != 0)
     {   // in the middle of escape sequence
         pCmdIO->seqBuff[pCmdIO->seqChars] = newCh;
         pCmdIO->seqChars++;
 
-        if(pCmdIO->seqChars == VT100_DETECT_SEQ_SIZE)
+        if (pCmdIO->seqChars == VT100_DETECT_SEQ_SIZE)
         {   // detect the exact escape sequence
             pCmdIO->seqBuff[pCmdIO->seqChars] = 0;
-            pKeyDcpt = keySeqTbl;
-            pFoundSeq = 0;
-            for(ix = 0; ix < sizeof(keySeqTbl) / sizeof(*keySeqTbl); ix++, pKeyDcpt++)
+            pKeyDcpt                          = keySeqTbl;
+            pFoundSeq                         = 0;
+            for (ix = 0; ix < sizeof(keySeqTbl) / sizeof(*keySeqTbl); ix++, pKeyDcpt++)
             {
-                if(strncmp(pCmdIO->seqBuff, pKeyDcpt->keyCode, VT100_DETECT_SEQ_SIZE) == 0)
+                if (strncmp(pCmdIO->seqBuff, pKeyDcpt->keyCode, VT100_DETECT_SEQ_SIZE) == 0)
                 {   // found it
                     pFoundSeq = pKeyDcpt;
                     break;
                 }
             }
 
-            if(pFoundSeq == 0)
+            if (pFoundSeq == 0)
             {   // unknown escape sequence
                 pCmdIO->seqChars = 0;
                 return;
@@ -387,9 +385,9 @@ static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO)
             pCmdIO->pSeqDcpt = pFoundSeq;
         }
 
-        if(pCmdIO->seqChars >= VT100_DETECT_SEQ_SIZE && pCmdIO->seqChars == pCmdIO->pSeqDcpt->keySize)
+        if (pCmdIO->seqChars >= VT100_DETECT_SEQ_SIZE && pCmdIO->seqChars == pCmdIO->pSeqDcpt->keySize)
         {   // check for complete sequence
-            if(strcmp(pCmdIO->seqBuff, pCmdIO->pSeqDcpt->keyCode) == 0)
+            if (strcmp(pCmdIO->seqBuff, pCmdIO->pSeqDcpt->keyCode) == 0)
             {   // process sequence
                 (*pCmdIO->pSeqDcpt->keyFnc)(pCmdIO, pCmdIO->pSeqDcpt);
             }
@@ -400,11 +398,10 @@ static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO)
         }
 
         return;
-
     }
-    else if((newCh == '\r') || (newCh == '\n'))
+    else if ((newCh == '\r') || (newCh == '\n'))
     {   // new command assembled
-        if(pCmdIO->cmdEnd ==  pCmdIO->cmdBuff)
+        if (pCmdIO->cmdEnd == pCmdIO->cmdBuff)
         {   // just an extra \n or \r
             (*pCmdApi->msg)(cmdIoParam, LINE_TERM _promptStr);
             return;
@@ -416,22 +413,23 @@ static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO)
         ParseCmdBuffer(pCmdIO);
         (*pCmdApi->msg)(cmdIoParam, _promptStr);
     }
-    else if(newCh == '\b')
+    else if (newCh == '\b')
     {
-        if(pCmdIO->cmdPnt > pCmdIO->cmdBuff)
+        if (pCmdIO->cmdPnt > pCmdIO->cmdBuff)
         {
-            if(pCmdIO->cmdEnd > pCmdIO->cmdPnt)
+            if (pCmdIO->cmdEnd > pCmdIO->cmdPnt)
             {
-                int ix, len;
-                char* pSrc = pCmdIO->cmdPnt; // current
+                int   ix, len;
+                char* pSrc = pCmdIO->cmdPnt;   // current
                 char* pDst = pCmdIO->cmdPnt - 1;
-                len = pCmdIO->cmdEnd - pSrc;
-                for(ix = 0; ix < len; ix++)
+                len        = pCmdIO->cmdEnd - pSrc;
+                for (ix = 0; ix < len; ix++)
                 {
                     *pDst++ = *pSrc++;
                 }
-                pCmdIO->cmdPnt--; pCmdIO->cmdEnd--;
-                // update the display; erase to the end of line(<ESC>[K) and move cursor backwards (<ESC>[{COUNT}D) 
+                pCmdIO->cmdPnt--;
+                pCmdIO->cmdEnd--;
+                // update the display; erase to the end of line(<ESC>[K) and move cursor backwards (<ESC>[{COUNT}D)
                 *pCmdIO->cmdEnd = '\0';
                 sprintf(pCmdIO->ctrlBuff, "\b\x1b[K%s\x1b[%dD", pCmdIO->cmdPnt, len);
                 (*pCmdApi->msg)(cmdIoParam, pCmdIO->ctrlBuff);
@@ -439,43 +437,44 @@ static void RunCmdTask(SYS_CMD_IO_DCPT* pCmdIO)
             else
             {   // delete char under cursor
                 (*pCmdApi->msg)(cmdIoParam, "\b\x1b[K");
-                pCmdIO->cmdPnt--; pCmdIO->cmdEnd--;
+                pCmdIO->cmdPnt--;
+                pCmdIO->cmdEnd--;
             }
         }
     }
-    else if(newCh == 0x7f)
+    else if (newCh == 0x7f)
     {   // delete
-        if(pCmdIO->cmdEnd > pCmdIO->cmdPnt)
+        if (pCmdIO->cmdEnd > pCmdIO->cmdPnt)
         {
-            int ix, len;
+            int   ix, len;
             char* pSrc = pCmdIO->cmdPnt + 1;
             char* pDst = pCmdIO->cmdPnt;
-            len = pCmdIO->cmdEnd - pSrc;
-            for(ix = 0; ix < len; ix++)
+            len        = pCmdIO->cmdEnd - pSrc;
+            for (ix = 0; ix < len; ix++)
             {
                 *pDst++ = *pSrc++;
             }
             pCmdIO->cmdEnd--;
-            // update the display; erase to the end of line(<ESC>[K) and move cursor backwards (<ESC>[{COUNT}D) 
+            // update the display; erase to the end of line(<ESC>[K) and move cursor backwards (<ESC>[{COUNT}D)
             *pCmdIO->cmdEnd = '\0';
             sprintf(pCmdIO->ctrlBuff, "\x1b[K%s\x1b[%dD", pCmdIO->cmdPnt, len);
             (*pCmdApi->msg)(cmdIoParam, pCmdIO->ctrlBuff);
         }
     }
-    else if(newCh == 0x1b)
+    else if (newCh == 0x1b)
     {   // start escape sequence... wait for complete sequence
         pCmdIO->seqBuff[0] = newCh;
-        pCmdIO->seqChars = 1;
+        pCmdIO->seqChars   = 1;
     }
-    else if(pCmdIO->cmdEnd - pCmdIO->cmdBuff < sizeof(pCmdIO->cmdBuff) - 1)
+    else if (pCmdIO->cmdEnd - pCmdIO->cmdBuff < sizeof(pCmdIO->cmdBuff) - 1)
     {   // valid char; insert and echo it back
         int ix;
-        int n_chars = pCmdIO->cmdEnd - pCmdIO->cmdPnt;  // existent chars
-        if(n_chars != 0)
+        int n_chars = pCmdIO->cmdEnd - pCmdIO->cmdPnt;   // existent chars
+        if (n_chars != 0)
         {   // move the existing chars to the right, for insertion...
             char* pSrc = pCmdIO->cmdEnd - 1;
             char* pDst = pCmdIO->cmdEnd;
-            for(ix = 0; ix < n_chars; ix++)
+            for (ix = 0; ix < n_chars; ix++)
             {
                 *pDst-- = *pSrc--;
             }
@@ -554,27 +553,27 @@ void SYS_CMD_MESSAGE(const char* message)
 */
 void SYS_CMD_PRINT(const char* format, ...)
 {
-    char tmpBuf[SYS_CMD_PRINT_BUFFER_SIZE];
-    size_t len = 0;
-    size_t padding = 0;
-    va_list args = {0};
-    va_start( args, format );
+    char    tmpBuf[SYS_CMD_PRINT_BUFFER_SIZE];
+    size_t  len     = 0;
+    size_t  padding = 0;
+    va_list args    = {0};
+    va_start(args, format);
 
     len = vsnprintf(tmpBuf, SYS_CMD_PRINT_BUFFER_SIZE, format, args);
 
-    va_end( args );
+    va_end(args);
 
     if (len > 0 && len < SYS_CMD_PRINT_BUFFER_SIZE)
     {
         tmpBuf[len] = '\0';
 
-        if (len + printBuffPtr >= SYS_CMD_PRINT_BUFFER_SIZE)
+        if (len + cmdPrintBuffPtr >= SYS_CMD_PRINT_BUFFER_SIZE)
         {
-            printBuffPtr = 0;
+            cmdPrintBuffPtr = 0;
         }
 
-        strcpy(&printBuff[printBuffPtr], tmpBuf);
-        SendCommandMessage(NULL, &printBuff[printBuffPtr]);
+        strcpy(&cmdPrintBuff[cmdPrintBuffPtr], tmpBuf);
+        SendCommandMessage(NULL, &cmdPrintBuff[cmdPrintBuffPtr]);
 
         padding = len % 4;
 
@@ -583,7 +582,7 @@ void SYS_CMD_PRINT(const char* format, ...)
             padding = 4 - padding;
         }
 
-        printBuffPtr += len + padding;
+        cmdPrintBuffPtr += len + padding;
     }
 }
 
@@ -591,7 +590,7 @@ SYS_CMD_DEVICE_NODE* SYS_CMDIO_GET_HANDLE(short num)
 {
     SYS_CMD_IO_DCPT* pNode = cmdIODevList.head;
 
-    while(num && pNode)
+    while (num && pNode)
     {
         pNode = pNode->next;
         num--;
@@ -612,19 +611,19 @@ SYS_CMD_DEVICE_NODE* SYS_CMDIO_ADD(const SYS_CMD_API* opApi, const void* cmdIoPa
     {
         return 0;
     }
-    pNewIo->devNode.pCmdApi = opApi;
+    pNewIo->devNode.pCmdApi    = opApi;
     pNewIo->devNode.cmdIoParam = cmdIoParam;
     pNewIo->cmdPnt = pNewIo->cmdEnd = pNewIo->cmdBuff;
 
     // construct the command history list
-    for(ix = 0; ix < sizeof(pNewIo->histArray) / sizeof(*pNewIo->histArray); ix++)
+    for (ix = 0; ix < sizeof(pNewIo->histArray) / sizeof(*pNewIo->histArray); ix++)
     {
         CmdAddHead(&pNewIo->histList, pNewIo->histArray + ix);
     }
 
     // Insert node at end
     pNewIo->next = 0;
-    if(cmdIODevList.head == 0)
+    if (cmdIODevList.head == 0)
     {
         cmdIODevList.head = pNewIo;
         cmdIODevList.tail = pNewIo;
@@ -632,7 +631,7 @@ SYS_CMD_DEVICE_NODE* SYS_CMDIO_ADD(const SYS_CMD_API* opApi, const void* cmdIoPa
     else
     {
         cmdIODevList.tail->next = pNewIo;
-        cmdIODevList.tail = pNewIo;
+        cmdIODevList.tail       = pNewIo;
     }
 
     return &pNewIo->devNode;
@@ -646,15 +645,15 @@ bool SYS_CMD_DELETE(SYS_CMD_DEVICE_NODE* pDeviceNode)
     SYS_CMD_IO_DCPT* pDevNode = (SYS_CMD_IO_DCPT*)pDeviceNode;
 
     // root list is empty or null node to be deleted
-    if((p_listnode == NULL) || (pDevNode == NULL))
+    if ((p_listnode == NULL) || (pDevNode == NULL))
     {
         return false;
     }
 
-    if(p_listnode == pDevNode)
+    if (p_listnode == pDevNode)
     {   // delete the head
         //Root list has only one node
-        if(cmdIODevList.tail == pDevNode)
+        if (cmdIODevList.tail == pDevNode)
         {
             cmdIODevList.head = NULL;
             cmdIODevList.tail = NULL;
@@ -671,11 +670,12 @@ bool SYS_CMD_DELETE(SYS_CMD_DEVICE_NODE* pDeviceNode)
     pre_listnode = p_listnode;
     while (p_listnode)
     {
-        if(p_listnode == pDevNode)
+        if (p_listnode == pDevNode)
         {
             pre_listnode->next = p_listnode->next;
             // Deleted node is tail
-            if (cmdIODevList.tail==pDevNode) {
+            if (cmdIODevList.tail == pDevNode)
+            {
                 cmdIODevList.tail = pre_listnode;
             }
             free(pDevNode);
@@ -692,33 +692,36 @@ bool SYS_CMD_DELETE(SYS_CMD_DEVICE_NODE* pDeviceNode)
 // ignore the console handle for now, we support a single system console
 static void SendCommandMessage(const void* cmdIoParam, const char* message)
 {
-    SYS_CONSOLE_Write(_cmdInitData.consoleIndex, message, strlen(message));
+    if (SYS_CONSOLE_Write(_cmdInitData.consoleIndex, message, strlen(message)) < 0)
+    {
+        LED_SetRed(LED_STATE_BLINK_FAST);
+    }
 }
 
 static void SendCommandPrint(const void* cmdIoParam, const char* format, ...)
 {
-    char tmpBuf[SYS_CMD_PRINT_BUFFER_SIZE];
-    size_t len = 0;
-    size_t padding = 0;
-    va_list args = {0};
-    va_start( args, format );
+    char    tmpBuf[SYS_CMD_PRINT_BUFFER_SIZE];
+    size_t  len     = 0;
+    size_t  padding = 0;
+    va_list args    = {0};
+    va_start(args, format);
 
     len = vsnprintf(tmpBuf, SYS_CMD_PRINT_BUFFER_SIZE, format, args);
 
-    va_end( args );
+    va_end(args);
 
 
     if (len > 0 && len < SYS_CMD_PRINT_BUFFER_SIZE)
     {
         tmpBuf[len] = '\0';
 
-        if (len + printBuffPtr >= SYS_CMD_PRINT_BUFFER_SIZE)
+        if (len + cmdPrintBuffPtr >= SYS_CMD_PRINT_BUFFER_SIZE)
         {
-            printBuffPtr = 0;
+            cmdPrintBuffPtr = 0;
         }
 
-        strcpy(&printBuff[printBuffPtr], tmpBuf);
-        SendCommandMessage(NULL, &printBuff[printBuffPtr]);
+        strcpy(&cmdPrintBuff[cmdPrintBuffPtr], tmpBuf);
+        SendCommandMessage(NULL, &cmdPrintBuff[cmdPrintBuffPtr]);
 
         padding = len % 4;
 
@@ -727,7 +730,7 @@ static void SendCommandPrint(const void* cmdIoParam, const char* format, ...)
             padding = 4 - padding;
         }
 
-        printBuffPtr += len + padding;
+        cmdPrintBuffPtr += len + padding;
     }
 }
 
@@ -743,7 +746,7 @@ static void SendCommandCharacter(const void* cmdIoParam, char c)
 static int IsCommandReady(const void* cmdIoParam)
 {
     return (int)SYS_CONSOLE_ReadCountGet(_cmdInitData.consoleIndex);
-    }
+}
 
 static char GetCommandCharacter(const void* cmdIoParam)
 {
@@ -758,23 +761,22 @@ static char GetCommandCharacter(const void* cmdIoParam)
 static void CommandReset(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
 {
     const void* cmdIoParam = pCmdIO->cmdIoParam;
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** System Reboot ***\r\n" );
+    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** System Reboot ***\r\n");
 
-   //  SYS_RESET_SoftwareReset();
-
+    NVIC_SystemReset();
 }
 
 // quit
 static void CommandQuit(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
 {
     SYS_CMD_IO_DCPT* pCmdIoNode;
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
+    const void*      cmdIoParam = pCmdIO->cmdIoParam;
 
-    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** Quitting the Command Processor. Bye ***\r\n" );
+    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** Quitting the Command Processor. Bye ***\r\n");
 
     memset(_usrCmdTbl, 0x0, sizeof(_usrCmdTbl));
 
-    while((pCmdIoNode = cmdIODevList.head) != NULL)
+    while ((pCmdIoNode = cmdIODevList.head) != NULL)
     {
         free(pCmdIoNode);
     }
@@ -782,53 +784,50 @@ static void CommandQuit(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
 
 static void CommandHelp(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
 {
-    int ix, groupIx;
-    const SYS_CMD_DESCRIPTOR*  pDcpt;
-    const SYS_CMD_DESCRIPTOR_TABLE* pTbl, *pDTbl;
-    const void* cmdIoParam = pCmdIO->cmdIoParam;
+    //
+    // Keep help < 512 to fit UART buffer size.
+    //
+    int                             ix, groupIx;
+    const SYS_CMD_DESCRIPTOR*       pDcpt;
+    const SYS_CMD_DESCRIPTOR_TABLE *pTbl, *pDTbl;
+    const void*                     cmdIoParam = pCmdIO->cmdIoParam;
 
-    if(argc == 1)
+    cmdPrintBuffPtr = 0;
+
+    if (argc == 1)
     {   // no params help; display basic info
         bool hadHeader = false;
-        pTbl = _usrCmdTbl;
-        for (groupIx=0; groupIx < MAX_CMD_GROUP; groupIx++)
+        pTbl           = _usrCmdTbl;
+        for (groupIx = 0; groupIx < MAX_CMD_GROUP; groupIx++)
         {
             if (pTbl->pCmd)
             {
-                if(!hadHeader)
+                if (!hadHeader)
                 {
-                    (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "------- Supported command groups ------");
+                    (*pCmdIO->pCmdApi->msg)(cmdIoParam, "\r\n---- Supported command groups ----\r\n");
                     hadHeader = true;
                 }
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** ");
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, pTbl->cmdGroupName);
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, pTbl->cmdMenuStr);
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, " ***");
+                (*pCmdIO->pCmdApi->print)(cmdIoParam, "** %s %s\r\n", pTbl->cmdGroupName, pTbl->cmdMenuStr);
             }
             pTbl++;
         }
 
         // display the basic commands
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "---------- Built in commands ----------");
-        for(ix = 0, pDcpt = _builtinCmdTbl; ix < sizeof(_builtinCmdTbl)/sizeof(*_builtinCmdTbl); ix++, pDcpt++)
+        (*pCmdIO->pCmdApi->print)(cmdIoParam, "\r\n---- Built in commands -----\r\n");
+        for (ix = 0, pDcpt = _builtinCmdTbl; ix < sizeof(_builtinCmdTbl) / sizeof(*_builtinCmdTbl); ix++, pDcpt++)
         {
-            (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** ");
-            (*pCmdIO->pCmdApi->msg)(cmdIoParam, pDcpt->cmdStr);
-            (*pCmdIO->pCmdApi->msg)(cmdIoParam, pDcpt->cmdDescr);
-            (*pCmdIO->pCmdApi->msg)(cmdIoParam, " ***");
+            (*pCmdIO->pCmdApi->print)(cmdIoParam, "** %s %s\r\n", pDcpt->cmdStr, pDcpt->cmdDescr);
         }
-
-        (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM);
     }
     else
     {   // we have a command group name
         pDTbl = 0;
-        pTbl = _usrCmdTbl;
-        for (groupIx=0; groupIx < MAX_CMD_GROUP; groupIx++)
+        pTbl  = _usrCmdTbl;
+        for (groupIx = 0; groupIx < MAX_CMD_GROUP; groupIx++)
         {
             if (pTbl->pCmd)
             {
-                if(strcmp(pTbl->cmdGroupName, argv[1]) == 0)
+                if (strcmp(pTbl->cmdGroupName, argv[1]) == 0)
                 {   // match
                     pDTbl = pTbl;
                     break;
@@ -837,70 +836,64 @@ static void CommandHelp(SYS_CMD_DEVICE_NODE* pCmdIO, int argc, char** argv)
             pTbl++;
         }
 
-        if(pDTbl)
+        if (pDTbl)
         {
-            for(ix = 0, pDcpt = pDTbl->pCmd; ix < pDTbl->nCmds; ix++, pDcpt++)
+            for (ix = 0, pDcpt = pDTbl->pCmd; ix < pDTbl->nCmds; ix++, pDcpt++)
             {
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM " *** ");
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, pDcpt->cmdStr);
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, pDcpt->cmdDescr);
-                (*pCmdIO->pCmdApi->msg)(cmdIoParam, " ***");
+                (*pCmdIO->pCmdApi->print)(cmdIoParam, " *** %s %s\r\n", pDcpt->cmdStr, pDcpt->cmdDescr);
             }
-
-            (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM);
         }
         else
         {
-            (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "Unknown command group. Try help" LINE_TERM );
+            (*pCmdIO->pCmdApi->msg)(cmdIoParam, LINE_TERM "Unknown command group. Try help" LINE_TERM);
         }
     }
-
 }
 
 static bool ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO)
 {
-    int  argc = 0;
-    char *argv[MAX_CMD_ARGS + 1] = {0};
-    char saveCmd[SYS_CMD_MAX_LENGTH + 1]; 
+    int         argc                   = 0;
+    char*       argv[MAX_CMD_ARGS + 1] = {0};
+    char        saveCmd[SYS_CMD_MAX_LENGTH + 1];
     const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
 
-    int            ix, grp_ix;
+    int                       ix, grp_ix;
     const SYS_CMD_DESCRIPTOR* pDcpt;
 
-    strncpy(saveCmd, pCmdIO->cmdBuff, sizeof(saveCmd));     // make a copy of the command
+    strncpy(saveCmd, pCmdIO->cmdBuff, sizeof(saveCmd));   // make a copy of the command
 
     // parse a command string to *argv[]
     argc = StringToArgs(saveCmd, argv);
 
-    if(argc != 0)
+    if (argc != 0)
     {   // ok, there's smth here
 
         // add it to the history list
         histCmdNode* pN = CmdRemoveTail(&pCmdIO->histList);
-        strncpy(pN->cmdBuff, pCmdIO->cmdBuff, sizeof(saveCmd)); // Need save non-parsed string
+        strncpy(pN->cmdBuff, pCmdIO->cmdBuff, sizeof(saveCmd));   // Need save non-parsed string
         CmdAddHead(&pCmdIO->histList, pN);
         pCmdIO->currHistN = 0;
 
         // try built-in commands first
-        for(ix = 0, pDcpt = _builtinCmdTbl; ix < sizeof(_builtinCmdTbl)/sizeof(*_builtinCmdTbl); ix++, pDcpt++)
+        for (ix = 0, pDcpt = _builtinCmdTbl; ix < sizeof(_builtinCmdTbl) / sizeof(*_builtinCmdTbl); ix++, pDcpt++)
         {
-            if(!strcmp(argv[0], pDcpt->cmdStr))
-            {   // command found
-                (*pDcpt->cmdFnc)(&pCmdIO->devNode, argc, argv);     // call command handler
+            if (!strcmp(argv[0], pDcpt->cmdStr))
+            {                                                     // command found
+                (*pDcpt->cmdFnc)(&pCmdIO->devNode, argc, argv);   // call command handler
                 return true;
             }
         }
         // search user commands
-        for (grp_ix=0; grp_ix < MAX_CMD_GROUP; grp_ix++)
+        for (grp_ix = 0; grp_ix < MAX_CMD_GROUP; grp_ix++)
         {
             if (_usrCmdTbl[grp_ix].pCmd == 0)
             {
-               continue;
+                continue;
             }
 
-            for(ix = 0, pDcpt = _usrCmdTbl[grp_ix].pCmd; ix < _usrCmdTbl[grp_ix].nCmds; ix++, pDcpt++)
+            for (ix = 0, pDcpt = _usrCmdTbl[grp_ix].pCmd; ix < _usrCmdTbl[grp_ix].nCmds; ix++, pDcpt++)
             {
-                if(!strcmp(argv[0], pDcpt->cmdStr))
+                if (!strcmp(argv[0], pDcpt->cmdStr))
                 {
                     // command found
                     (*pDcpt->cmdFnc)(&pCmdIO->devNode, argc, argv);
@@ -926,59 +919,66 @@ static bool ParseCmdBuffer(SYS_CMD_IO_DCPT* pCmdIO)
   param argv, parsed argument string array
   return number of parsed argument
 */
-static int StringToArgs(char *pRawString, char *argv[]) {
-  int argc = 0, i = 0, strsize = 0;
+static int StringToArgs(char* pRawString, char* argv[])
+{
+    int argc = 0, i = 0, strsize = 0;
 
-  if(pRawString == NULL)
-    return 0;
+    if (pRawString == NULL)
+        return 0;
 
-  strsize = strlen(pRawString);
+    strsize = strlen(pRawString);
 
-  while(argc < MAX_CMD_ARGS) {
+    while (argc < MAX_CMD_ARGS)
+    {
 
-    // skip white space characters of string head
-    while ((*pRawString == ' ') || (*pRawString == '\t')) {
-      ++pRawString;
-      if (++i >= strsize) {
-        return (argc);
-      }
+        // skip white space characters of string head
+        while ((*pRawString == ' ') || (*pRawString == '\t'))
+        {
+            ++pRawString;
+            if (++i >= strsize)
+            {
+                return (argc);
+            }
+        }
+
+        if (*pRawString == '\0')
+        {
+            argv[argc] = NULL;
+            return (argc);
+        }
+
+        argv[argc++] = pRawString;
+
+        // find end of string
+        while (*pRawString && (*pRawString != ' ') && (*pRawString != '\t'))
+        {
+            ++pRawString;
+        }
+
+        if (*pRawString == '\0')
+        {
+            argv[argc] = NULL;
+            return (argc);
+        }
+
+        *pRawString++ = '\0';
     }
 
-    if (*pRawString == '\0') {
-      argv[argc] = NULL;
-      return (argc);
-    }
+    SYS_CONSOLE_Print(_cmdInitData.consoleIndex, "\n\r Too many arguments. Maximum argus supported is %d!\r\n", MAX_CMD_ARGS);
 
-    argv[argc++] = pRawString;
-
-    // find end of string
-    while (*pRawString && (*pRawString != ' ') && (*pRawString != '\t')) {
-      ++pRawString;
-    }
-
-    if (*pRawString == '\0') {
-    argv[argc] = NULL;
-    return (argc);
-    }
-
-    *pRawString++ = '\0';
-  }
-
-  SYS_CONSOLE_Print(_cmdInitData.consoleIndex, "\n\r Too many arguments. Maximum argus supported is %d!\r\n", MAX_CMD_ARGS);
-
-  return (0);
+    return (0);
 }
 
 static void _keyUpProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 {   // up arrow
-    histCmdNode *pNext;
-    
-    if(pCmdIO->currHistN)
+    histCmdNode* pNext;
+
+    if (pCmdIO->currHistN)
     {
         pNext = pCmdIO->currHistN->next;
-        if(pNext == pCmdIO->histList.head)
+        if (pNext == pCmdIO->histList.head)
         {
-            return; // reached the end of list
+            return;   // reached the end of list
         }
     }
     else
@@ -991,12 +991,12 @@ static void _keyUpProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 
 static void _keyDownProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 {   // down arrow
-    histCmdNode *pNext;
+    histCmdNode* pNext;
 
-    if(pCmdIO->currHistN)
+    if (pCmdIO->currHistN)
     {
         pNext = pCmdIO->currHistN->prev;
-        if(pNext != pCmdIO->histList.tail)
+        if (pNext != pCmdIO->histList.tail)
         {
             DisplayNodeMsg(pCmdIO, pNext);
         }
@@ -1005,10 +1005,10 @@ static void _keyDownProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcp
 
 static void _keyRightProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 {   // right arrow
-    const SYS_CMD_API* pCmdApi = pCmdIO->devNode.pCmdApi;
-    const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
+    const SYS_CMD_API* pCmdApi    = pCmdIO->devNode.pCmdApi;
+    const void*        cmdIoParam = pCmdIO->devNode.cmdIoParam;
 
-    if(pCmdIO->cmdPnt < pCmdIO->cmdEnd)
+    if (pCmdIO->cmdPnt < pCmdIO->cmdEnd)
     {   // just advance
         (*pCmdApi->msg)(cmdIoParam, pSeqDcpt->keyCode);
         pCmdIO->cmdPnt++;
@@ -1017,10 +1017,10 @@ static void _keyRightProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDc
 
 static void _keyLeftProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 {   // left arrow
-    const SYS_CMD_API* pCmdApi = pCmdIO->devNode.pCmdApi;
-    const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
+    const SYS_CMD_API* pCmdApi    = pCmdIO->devNode.pCmdApi;
+    const void*        cmdIoParam = pCmdIO->devNode.cmdIoParam;
 
-    if(pCmdIO->cmdPnt > pCmdIO->cmdBuff)
+    if (pCmdIO->cmdPnt > pCmdIO->cmdBuff)
     {
         pCmdIO->cmdPnt--;
         (*pCmdApi->msg)(cmdIoParam, pSeqDcpt->keyCode);
@@ -1029,13 +1029,13 @@ static void _keyLeftProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcp
 
 static void _keyHomeProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 {   // home key
-    const SYS_CMD_API* pCmdApi = pCmdIO->devNode.pCmdApi;
-    const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
-    int nChars = pCmdIO->cmdPnt - pCmdIO->cmdBuff;
-    if(nChars != 0)
+    const SYS_CMD_API* pCmdApi    = pCmdIO->devNode.pCmdApi;
+    const void*        cmdIoParam = pCmdIO->devNode.cmdIoParam;
+    int                nChars     = pCmdIO->cmdPnt - pCmdIO->cmdBuff;
+    if (nChars != 0)
     {
         // <ESC>[{COUNT}D
-        char homeBuff[ 10 + 1];
+        char homeBuff[10 + 1];
         sprintf(homeBuff, "\x1b[%dD", nChars);
         (*pCmdApi->msg)(cmdIoParam, homeBuff);
         pCmdIO->cmdPnt = pCmdIO->cmdBuff;
@@ -1044,36 +1044,35 @@ static void _keyHomeProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcp
 
 static void _keyEndProcess(SYS_CMD_IO_DCPT* pCmdIO, const KEY_SEQ_DCPT* pSeqDcpt)
 {   // end key
-    const SYS_CMD_API* pCmdApi = pCmdIO->devNode.pCmdApi;
-    const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
-    
+    const SYS_CMD_API* pCmdApi    = pCmdIO->devNode.pCmdApi;
+    const void*        cmdIoParam = pCmdIO->devNode.cmdIoParam;
+
     int nChars = pCmdIO->cmdEnd - pCmdIO->cmdPnt;
-    if(nChars)
+    if (nChars)
     {
         // "<ESC>[{COUNT}C"
-        char endBuff[ 10 + 1];
+        char endBuff[10 + 1];
         sprintf(endBuff, "\x1b[%dC", nChars);
         (*pCmdApi->msg)(cmdIoParam, endBuff);
         pCmdIO->cmdPnt = pCmdIO->cmdEnd;
     }
-
 }
 
 static void DisplayNodeMsg(SYS_CMD_IO_DCPT* pCmdIO, histCmdNode* pNext)
 {
-    int oCmdLen, nCmdLen;
-    const SYS_CMD_API* pCmdApi = pCmdIO->devNode.pCmdApi;
-    const void* cmdIoParam = pCmdIO->devNode.cmdIoParam;
+    int                oCmdLen, nCmdLen;
+    const SYS_CMD_API* pCmdApi    = pCmdIO->devNode.pCmdApi;
+    const void*        cmdIoParam = pCmdIO->devNode.cmdIoParam;
 
-    if((nCmdLen = strlen(pNext->cmdBuff)))
+    if ((nCmdLen = strlen(pNext->cmdBuff)))
     {   // something there
         oCmdLen = pCmdIO->cmdEnd - pCmdIO->cmdBuff;
-        while(oCmdLen > nCmdLen)
+        while (oCmdLen > nCmdLen)
         {
-            (*pCmdApi->msg)(cmdIoParam, "\b \b");     // clear the old command
+            (*pCmdApi->msg)(cmdIoParam, "\b \b");   // clear the old command
             oCmdLen--;
         }
-        while(oCmdLen--)
+        while (oCmdLen--)
         {
             (*pCmdApi->msg)(cmdIoParam, "\b");
         }
@@ -1081,25 +1080,25 @@ static void DisplayNodeMsg(SYS_CMD_IO_DCPT* pCmdIO, histCmdNode* pNext)
         (*pCmdApi->msg)(cmdIoParam, "\r\n>");
         (*pCmdApi->msg)(cmdIoParam, pCmdIO->cmdBuff);
         pCmdIO->cmdPnt = pCmdIO->cmdEnd = pCmdIO->cmdBuff + nCmdLen;
-        pCmdIO->currHistN = pNext;
+        pCmdIO->currHistN               = pNext;
     }
 }
 
 
 static void CmdAddHead(histCmdList* pL, histCmdNode* pN)
 {
-    if(pL->head == 0)
-    { // empty list, first node
+    if (pL->head == 0)
+    {   // empty list, first node
         pL->head = pL->tail = pN;
         pN->next = pN->prev = pN;
     }
     else
     {
-        pN->next = pL->head;
-        pN->prev = pL->tail;
+        pN->next       = pL->head;
+        pN->prev       = pL->tail;
         pL->tail->next = pN;
         pL->head->prev = pN;
-        pL->head = pN;
+        pL->head       = pN;
     }
 }
 
@@ -1107,15 +1106,15 @@ static void CmdAddHead(histCmdList* pL, histCmdNode* pN)
 static histCmdNode* CmdRemoveTail(histCmdList* pL)
 {
     histCmdNode* pN;
-    if(pL->head == pL->tail)
+    if (pL->head == pL->tail)
     {
-        pN = pL->head;
+        pN       = pL->head;
         pL->head = pL->tail = 0;
     }
     else
     {
-        pN = pL->tail;
-        pL->tail = pN->prev;
+        pN             = pL->tail;
+        pL->tail       = pN->prev;
         pL->tail->next = pL->head;
         pL->head->prev = pL->tail;
     }
@@ -1124,9 +1123,8 @@ static histCmdNode* CmdRemoveTail(histCmdList* pL)
 
 static void CmdAdjustPointers(SYS_CMD_IO_DCPT* pCmdIO)
 {
-    if(pCmdIO->cmdPnt > pCmdIO->cmdEnd)
+    if (pCmdIO->cmdPnt > pCmdIO->cmdEnd)
     {
         pCmdIO->cmdEnd = pCmdIO->cmdPnt;
     }
 }
-

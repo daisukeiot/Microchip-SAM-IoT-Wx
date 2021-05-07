@@ -503,7 +503,7 @@ int8_t spi_flash_write(uint8_t* pu8Buf, uint32_t u32Offset, uint32_t u32Sz)
     u32off = u32Offset % u32Blksz;
     if(u32Sz<=0)
     {
-        M2M_ERR("Data size = %d\r\n",(int)u32Sz);
+        M2M_ERR("  M2M: Data size = %d\r\n",(int)u32Sz);
         ret = M2M_ERR_FAIL;
         goto ERR;
     }
@@ -597,11 +597,11 @@ uint32_t spi_flash_get_size(void)
             u32FlashPwr = ((u32FlashId>>16)&0xff) - 0x11; /*2MBIT is the min*/
             /*That number power 2 to get the flash size*/
             gu32InternalFlashSize = 1<<u32FlashPwr;
-            M2M_INFO("Flash Size %lu Mb\r\n",gu32InternalFlashSize);
+            M2M_INFO("  M2M: Flash Size %lu Mb\r\n",gu32InternalFlashSize);
         }
         else
         {
-            M2M_ERR("Can't detect flash size\r\n");
+            M2M_ERR("  M2M: Can't detect flash size\r\n");
         }
     }
 

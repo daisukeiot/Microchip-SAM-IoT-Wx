@@ -273,7 +273,7 @@ static int8_t spi_cmd(uint8_t cmd, uint32_t adr, uint32_t u32data, uint32_t sz, 
 
     if (N_OK != spi_write(bc, len))
     {
-        M2M_ERR("[spi_cmd]: Failed cmd write, bus error...\r\n");
+        M2M_ERR("  M2M: [spi_cmd]: Failed cmd write, bus error...");
         return N_FAIL;
     }
 
@@ -307,7 +307,7 @@ static int8_t spi_cmd_rsp(uint8_t cmd)
     {
         if (N_OK != spi_read(&rsp, 1))
         {
-            M2M_ERR("[spi_cmd_rsp]: Failed cmd response read, bus error...\r\n");
+            M2M_ERR("  M2M: [spi_cmd_rsp]: Failed cmd response read, bus error...");
             return N_FAIL;
         }
     }
@@ -315,7 +315,7 @@ static int8_t spi_cmd_rsp(uint8_t cmd)
 
     if (s8RetryCnt < 0)
     {
-        M2M_ERR("[spi_cmd_rsp]: Failed cmd response read\n");
+        M2M_ERR("  M2M: [spi_cmd_rsp]: Failed cmd response read\n");
         return N_FAIL;
     }
     /**
@@ -327,7 +327,7 @@ static int8_t spi_cmd_rsp(uint8_t cmd)
     {
         if (N_OK != spi_read(&rsp, 1))
         {
-            M2M_ERR("[spi_cmd_rsp]: Failed cmd response read, bus error...\r\n");
+            M2M_ERR("  M2M: [spi_cmd_rsp]: Failed cmd response read, bus error...");
             return N_FAIL;
         }
     }
@@ -335,7 +335,7 @@ static int8_t spi_cmd_rsp(uint8_t cmd)
 
     if (s8RetryCnt < 0)
     {
-        M2M_ERR("[spi_cmd_rsp]: Failed cmd response read\n");
+        M2M_ERR("  M2M: [spi_cmd_rsp]: Failed cmd response read\n");
         return N_FAIL;
     }
 
@@ -381,7 +381,7 @@ static int8_t spi_data_read(uint8_t *b, uint16_t sz,uint8_t clockless)
         {
             if (N_OK != spi_read(&rsp, 1))
             {
-                M2M_ERR("[spi_data_read]: Failed data response read, bus error...\r\n");
+                M2M_ERR("  M2M: [spi_data_read]: Failed data response read, bus error...");
                 result = N_FAIL;
                 break;
             }
@@ -395,7 +395,7 @@ static int8_t spi_data_read(uint8_t *b, uint16_t sz,uint8_t clockless)
 
         if (retry <= 0)
         {
-            M2M_ERR("[spi_data_read]: Failed data response read...(%02x)\r\n", rsp);
+            M2M_ERR("  M2M: [spi_data_read]: Failed data response read...(%02x)", rsp);
             result = N_FAIL;
             break;
         }
@@ -405,7 +405,7 @@ static int8_t spi_data_read(uint8_t *b, uint16_t sz,uint8_t clockless)
         **/
         if (N_OK != spi_read(&b[ix], nbytes))
         {
-            M2M_ERR("[spi_data_read]: Failed data block read, bus error...\r\n");
+            M2M_ERR("  M2M: [spi_data_read]: Failed data block read, bus error...");
             result = N_FAIL;
             break;
         }
@@ -418,7 +418,7 @@ static int8_t spi_data_read(uint8_t *b, uint16_t sz,uint8_t clockless)
             {
                 if (N_OK != spi_read(crc, 2))
                 {
-                    M2M_ERR("[spi_data_read]: Failed data block CRC read, bus error...\r\n");
+                    M2M_ERR("  M2M: [spi_data_read]: Failed data block CRC read, bus error...");
                     result = N_FAIL;
                     break;
                 }
@@ -472,7 +472,7 @@ static int8_t spi_data_write(uint8_t *b, uint16_t sz)
         cmd |= order;
         if (N_OK != spi_write(&cmd, 1))
         {
-            M2M_ERR("[spi_data_write]: Failed data block cmd write, bus error...\r\n");
+            M2M_ERR("  M2M: [spi_data_write]: Failed data block cmd write, bus error...");
             result = N_FAIL;
             break;
         }
@@ -482,7 +482,7 @@ static int8_t spi_data_write(uint8_t *b, uint16_t sz)
         **/
         if (N_OK != spi_write(&b[ix], nbytes))
         {
-            M2M_ERR("[spi_data_write]: Failed data block write, bus error...\r\n");
+            M2M_ERR("  M2M: [spi_data_write]: Failed data block write, bus error...");
             result = N_FAIL;
             break;
         }
@@ -494,7 +494,7 @@ static int8_t spi_data_write(uint8_t *b, uint16_t sz)
         {
             if (N_OK != spi_write(crc, 2))
             {
-                M2M_ERR("[spi_data_write]: Failed data block CRC write, bus error...\r\n");
+                M2M_ERR("  M2M: [spi_data_write]: Failed data block CRC write, bus error...");
                 result = N_FAIL;
                 break;
             }
@@ -530,7 +530,7 @@ static int8_t spi_write_reg(uint32_t u32Addr, uint32_t u32Val)
 
     if (spi_cmd(cmd, u32Addr, u32Val, 4, clockless) != N_OK)
     {
-        M2M_ERR("[spi_write_reg]: Failed cmd, write reg (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_write_reg]: Failed cmd, write reg (%08x)...", u32Addr);
         return N_FAIL;
     }
 
@@ -541,7 +541,7 @@ static int8_t spi_write_reg(uint32_t u32Addr, uint32_t u32Val)
 
     if (spi_cmd_rsp(cmd) != N_OK)
     {
-        M2M_ERR("[spi_write_reg]: Failed cmd response, write reg (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_write_reg]: Failed cmd response, write reg (%08x)...", u32Addr);
         return N_FAIL;
     }
 
@@ -558,13 +558,13 @@ static int8_t spi_write_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
     **/
     if (spi_cmd(CMD_DMA_EXT_WRITE, u32Addr, 0, u16Sz, 0) != N_OK)
     {
-        M2M_ERR("[spi_write_block]: Failed cmd, write block (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_write_block]: Failed cmd, write block (%08x)...", u32Addr);
         return N_FAIL;
     }
 
     if (spi_cmd_rsp(CMD_DMA_EXT_WRITE) != N_OK)
     {
-        M2M_ERR("[spi_write_block]: Failed cmd response, write block (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_write_block]: Failed cmd response, write block (%08x)...", u32Addr);
         return N_FAIL;
     }
 
@@ -573,7 +573,7 @@ static int8_t spi_write_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
     **/
     if (spi_data_write(puBuf, u16Sz) != N_OK)
     {
-        M2M_ERR("[spi_write_block]: Failed block data write...\r\n");
+        M2M_ERR("  M2M: [spi_write_block]: Failed block data write...");
         return N_FAIL;
     }
     /**
@@ -586,13 +586,13 @@ static int8_t spi_write_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
 
     if (N_OK != spi_read(&rsp[0], len))
     {
-        M2M_ERR("[spi_write_block]: Failed bus error...\r\n");
+        M2M_ERR("  M2M: [spi_write_block]: Failed bus error...");
         return N_FAIL;
     }
 
     if((rsp[len-1] != 0) || (rsp[len-2] != 0xC3))
     {
-        M2M_ERR("[spi_write_block]: Failed data response read, %x %x %x\r\n", rsp[0], rsp[1], rsp[2]);
+        M2M_ERR("  M2M: [spi_write_block]: Failed data response read, %x %x %x", rsp[0], rsp[1], rsp[2]);
         return N_FAIL;
     }
 
@@ -616,20 +616,20 @@ static int8_t spi_read_reg(uint32_t u32Addr, uint32_t* pu32RetVal)
 
     if (spi_cmd(cmd, u32Addr, 0, 4, clockless) != N_OK)
     {
-        M2M_ERR("[spi_read_reg]: Failed cmd, read reg (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_read_reg]: Failed cmd, read reg (%08x)...", u32Addr);
         return N_FAIL;
     }
 
     if (spi_cmd_rsp(cmd) != N_OK)
     {
-        M2M_ERR("[spi_read_reg]: Failed cmd response, read reg (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_read_reg]: Failed cmd response, read reg (%08x)...", u32Addr);
         return N_FAIL;
     }
 
     /* to avoid endianess issues */
     if (spi_data_read(&tmp[0], 4, clockless) != N_OK)
     {
-        M2M_ERR("[spi_read_reg]: Failed data read...\r\n");
+        M2M_ERR("  M2M: [spi_read_reg]: Failed data read...");
         return N_FAIL;
     }
 
@@ -648,13 +648,13 @@ static int8_t spi_read_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
     **/
     if (spi_cmd(CMD_DMA_EXT_READ, u32Addr, 0, u16Sz, 0) != N_OK)
     {
-        M2M_ERR("[spi_read_block]: Failed cmd, read block (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_read_block]: Failed cmd, read block (%08x)...", u32Addr);
         return N_FAIL;
     }
 
     if (spi_cmd_rsp(CMD_DMA_EXT_READ) != N_OK)
     {
-        M2M_ERR("[spi_read_block]: Failed cmd response, read block (%08x)...\r\n", u32Addr);
+        M2M_ERR("  M2M: [spi_read_block]: Failed cmd response, read block (%08x)...", u32Addr);
         return N_FAIL;
     }
 
@@ -663,7 +663,7 @@ static int8_t spi_read_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
     **/
     if (spi_data_read(puBuf, u16Sz, 0) != N_OK)
     {
-        M2M_ERR("[spi_read_block]: Failed block data read...\r\n");
+        M2M_ERR("  M2M: [spi_read_block]: Failed block data read...");
         return N_FAIL;
     }
 
@@ -736,12 +736,12 @@ int8_t nm_spi_init(void)
         /* Read failed. Try with CRC off. This might happen when module
         is removed but chip isn't reset*/
         gu8Crc_off = 1;
-        M2M_ERR("[nm_spi_init]: Failed internal read protocol with CRC on, retrying with CRC off...\r\n");
+        M2M_ERR("  M2M: [nm_spi_init]: Failed internal read protocol with CRC on, retrying with CRC off...");
 
         if (nm_spi_read_reg_with_ret(NMI_SPI_PROTOCOL_CONFIG, &reg) != M2M_SUCCESS)
         {
             // Reaad failed with both CRC on and off, something went bad
-            M2M_ERR("[nm_spi_init]: Failed internal read protocol...\r\n");
+            M2M_ERR("  M2M: [nm_spi_init]: Failed internal read protocol...");
 
             return M2M_ERR_BUS_FAIL;
         }
@@ -754,7 +754,7 @@ int8_t nm_spi_init(void)
 
         if (nm_spi_write_reg(NMI_SPI_PROTOCOL_CONFIG, reg) != M2M_SUCCESS)
         {
-            M2M_ERR("[nm_spi_init]: Failed internal write protocol reg...\r\n");
+            M2M_ERR("  M2M: [nm_spi_init]: Failed internal write protocol reg...");
 
             return M2M_ERR_BUS_FAIL;
         }
@@ -767,11 +767,11 @@ int8_t nm_spi_init(void)
     **/
     if (nm_spi_read_reg_with_ret(0x1000, &chipid) != M2M_SUCCESS)
     {
-        M2M_ERR("[nm_spi_init]: Fail cmd read chip id...\r\n");
+        M2M_ERR("  M2M: [nm_spi_init]: Fail cmd read chip id...");
         return M2M_ERR_BUS_FAIL;
     }
 
-    M2M_DBG("[nm_spi_init]: chipid (%08x)\r\n", (unsigned int)chipid);
+    M2M_DBG("  M2M: [nm_spi_init]: chipid (%08x)", (unsigned int)chipid);
     spi_init_pkt_sz();
 
     return M2M_SUCCESS;
@@ -839,7 +839,7 @@ int8_t nm_spi_read_reg_with_ret(uint32_t u32Addr, uint32_t* pu32RetVal)
             return M2M_SUCCESS;
         }
 
-        M2M_ERR("Reset and retry %d %x\r\n", retry, u32Addr);
+        M2M_ERR("  M2M: Reset and retry %d %x", retry, u32Addr);
         spi_reset();
     }
 
@@ -876,7 +876,7 @@ int8_t nm_spi_write_reg(uint32_t u32Addr, uint32_t u32Val)
             return M2M_SUCCESS;
         }
 
-        M2M_ERR("Reset and retry %d %x %x\r\n", retry, u32Addr, u32Val);
+        M2M_ERR("  M2M: Reset and retry %d %x %x", retry, u32Addr, u32Val);
         spi_reset();
     }
 
@@ -930,7 +930,7 @@ int8_t nm_spi_read_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
             return M2M_SUCCESS;
         }
 
-        M2M_ERR("Reset and retry %d %x %d\r\n", retry, u32Addr, u16Sz);
+        M2M_ERR("  M2M: Reset and retry %d %x %d", retry, u32Addr, u16Sz);
         spi_reset();
     }
 
@@ -973,7 +973,7 @@ int8_t nm_spi_write_block(uint32_t u32Addr, uint8_t *puBuf, uint16_t u16Sz)
             return M2M_SUCCESS;
         }
 
-        M2M_ERR("Reset and retry %d %x %d\r\n", retry, u32Addr, u16Sz);
+        M2M_ERR("  M2M: Reset and retry %d %x %d", retry, u32Addr, u16Sz);
         spi_reset();
     }
 

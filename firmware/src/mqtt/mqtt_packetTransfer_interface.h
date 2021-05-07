@@ -26,7 +26,7 @@
 */
 
 #ifndef MQTT_PACKET_TRANSFER_INTERFACE_H
-#define	MQTT_PACKET_TRANSFER_INTERFACE_H
+#define MQTT_PACKET_TRANSFER_INTERFACE_H
 
 #include <stdint.h>
 
@@ -36,17 +36,17 @@
  * application to transfer the information received as part of the published  
  * packet to the application.
  **/
-typedef void (*imqttHandlePublishDataFuncPtr)(uint8_t *topic, uint8_t *payload); 
+typedef void (*imqttHandlePublishDataFuncPtr)(uint8_t* topic, uint8_t* payload);
 
-// The call back table prototype for sending the payload received as part of  
-// PUBLISH packet to the correct publish reception handler function defined in     
-// the user application. An instance of this table needs to be initialised by  
-// the user application to specify the total number of topics to subscribe to,  
-// the path of each topic and the call back function for handling the payload 
+// The call back table prototype for sending the payload received as part of
+// PUBLISH packet to the correct publish reception handler function defined in
+// the user application. An instance of this table needs to be initialised by
+// the user application to specify the total number of topics to subscribe to,
+// the path of each topic and the call back function for handling the payload
 // received as part of the PUBLISH packet.
 typedef struct
 {
-    char *topic;
+    uint8_t*                      topic;
     imqttHandlePublishDataFuncPtr mqttHandlePublishDataCallBack;
 } publishReceptionHandler_t;
 
@@ -61,7 +61,7 @@ typedef struct
  *                                callback functions to handle PUBLISH messages 
  *                                received for each topic
  */
-void MQTT_SetPublishReceptionHandlerTable(publishReceptionHandler_t *appPublishReceptionInfo);
+void MQTT_SetPublishReceptionHandlerTable(publishReceptionHandler_t* appPublishReceptionInfo);
 
 /** \brief Obtain the publishReceptionHandler_t table information defined in the 
  * user application that the application. 
@@ -72,7 +72,6 @@ void MQTT_SetPublishReceptionHandlerTable(publishReceptionHandler_t *appPublishR
  *
  * @return publish reception handler details defined in the user application
  */
-publishReceptionHandler_t *MQTT_GetPublishReceptionHandlerTable();
+publishReceptionHandler_t* MQTT_GetPublishReceptionHandlerTable();
 
-#endif	/* MQTT_PACKET_TRANSFER_INTERFACE_H */
-
+#endif /* MQTT_PACKET_TRANSFER_INTERFACE_H */

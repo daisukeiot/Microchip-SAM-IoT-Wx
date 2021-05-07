@@ -1162,11 +1162,11 @@ void WDRV_WINC_Tasks(SYS_MODULE_OBJ object)
         {
             pDcpt->sysStat = SYS_STATUS_BUSY;
 
-            WDRV_DBG_INFORM_PRINT("WINC: Initializing...\r\n");
+            WDRV_DBG_INFORM_PRINT("WINC: Initializing...");
 
             if (OSAL_RESULT_TRUE != OSAL_MUTEX_Create(&pDcpt->eventProcessMutex))
             {
-                WDRV_DBG_ERROR_PRINT("eventProcessMutex create failed\r\n");
+                WDRV_DBG_ERROR_PRINT("eventProcessMutex create failed");
                 pDcpt->sysStat = SYS_STATUS_ERROR;
                 break;
             }

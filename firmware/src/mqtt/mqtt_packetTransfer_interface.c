@@ -35,9 +35,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "mqtt_packetTransfer_interface.h"
-#include "../debug_print.h"
-
-
+#include "debug_print.h"
 
 /**********************MQTT Interface layer variables**************************/
 
@@ -47,17 +45,17 @@
  * PUBLISH packet payload received for a particular topic needs to be sent to 
  * the application for further processing.
  */
-publishReceptionHandler_t *publishRecvInfo;
+publishReceptionHandler_t* publishRecvInfo;
 /*******************MQTT Interface layer variables*(END)***********************/
 
 /**********************Function implementations********************************/
 
-void MQTT_SetPublishReceptionHandlerTable(publishReceptionHandler_t *appPublishReceptionInfo) 
+void MQTT_SetPublishReceptionHandlerTable(publishReceptionHandler_t* appPublishReceptionInfo)
 {
     publishRecvInfo = appPublishReceptionInfo;
 }
 
-publishReceptionHandler_t *MQTT_GetPublishReceptionHandlerTable()
+publishReceptionHandler_t* MQTT_GetPublishReceptionHandlerTable()
 {
     return publishRecvInfo;
 }

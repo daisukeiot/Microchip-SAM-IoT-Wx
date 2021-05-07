@@ -48,31 +48,28 @@
 #include "device.h"
 
 
-
 // ****************************************************************************
 // ****************************************************************************
 // Section: Configuration Bits
 // ****************************************************************************
 // ****************************************************************************
-#pragma config NVMCTRL_BOOTPROT = SIZE_0BYTES
+#pragma config NVMCTRL_BOOTPROT    = SIZE_0BYTES
 #pragma config NVMCTRL_EEPROM_SIZE = SIZE_0BYTES
-#pragma config BOD33USERLEVEL = 0x7 // Enter Hexadecimal value
-#pragma config BOD33_EN = ENABLED
-#pragma config BOD33_ACTION = RESET
+#pragma config BOD33USERLEVEL      = 0x7   // Enter Hexadecimal value
+#pragma config BOD33_EN            = ENABLED
+#pragma config BOD33_ACTION        = RESET
 
-#pragma config BOD33_HYST = DISABLED
-#pragma config NVMCTRL_REGION_LOCKS = 0xffff // Enter Hexadecimal value
+#pragma config BOD33_HYST           = DISABLED
+#pragma config NVMCTRL_REGION_LOCKS = 0xffff   // Enter Hexadecimal value
 
-#pragma config WDT_ENABLE = DISABLED
+#pragma config WDT_ENABLE   = DISABLED
 #pragma config WDT_ALWAYSON = DISABLED
-#pragma config WDT_PER = CYC16384
+#pragma config WDT_PER      = CYC16384
 
 #pragma config WDT_WINDOW_0 = SET
-#pragma config WDT_WINDOW_1 = 0x4 // Enter Hexadecimal value
+#pragma config WDT_WINDOW_1 = 0x4   // Enter Hexadecimal value
 #pragma config WDT_EWOFFSET = CYC16384
-#pragma config WDT_WEN = DISABLED
-
-
+#pragma config WDT_WEN      = DISABLED
 
 
 // *****************************************************************************
@@ -105,59 +102,59 @@ const DRV_SPI_PLIB_INTERFACE drvSPI0PlibAPI = {
     .callbackRegister = (DRV_SPI_PLIB_CALLBACK_REGISTER)SERCOM4_SPI_CallbackRegister,
 };
 
-const uint32_t drvSPI0remapDataBits[]= { 0x0, 0x1, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF };
-const uint32_t drvSPI0remapClockPolarity[] = { 0x0, 0x20000000 };
-const uint32_t drvSPI0remapClockPhase[] = { 0x10000000, 0x0 };
+const uint32_t drvSPI0remapDataBits[]      = {0x0, 0x1, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF};
+const uint32_t drvSPI0remapClockPolarity[] = {0x0, 0x20000000};
+const uint32_t drvSPI0remapClockPhase[]    = {0x10000000, 0x0};
 
 const DRV_SPI_INTERRUPT_SOURCES drvSPI0InterruptSources =
-{
-    /* Peripheral has single interrupt vector */
-    .isSingleIntSrc                        = true,
+    {
+        /* Peripheral has single interrupt vector */
+        .isSingleIntSrc = true,
 
-    /* Peripheral interrupt line */
-    .intSources.spiInterrupt             = SERCOM4_IRQn,
-    /* DMA interrupt line */
-    .intSources.dmaInterrupt               = DMAC_IRQn,
+        /* Peripheral interrupt line */
+        .intSources.spiInterrupt = SERCOM4_IRQn,
+        /* DMA interrupt line */
+        .intSources.dmaInterrupt = DMAC_IRQn,
 };
 
 /* SPI Driver Initialization Data */
 const DRV_SPI_INIT drvSPI0InitData =
-{
-    /* SPI PLIB API */
-    .spiPlib = &drvSPI0PlibAPI,
+    {
+        /* SPI PLIB API */
+        .spiPlib = &drvSPI0PlibAPI,
 
-    .remapDataBits = drvSPI0remapDataBits,
+        .remapDataBits = drvSPI0remapDataBits,
 
-    .remapClockPolarity = drvSPI0remapClockPolarity,
+        .remapClockPolarity = drvSPI0remapClockPolarity,
 
-    .remapClockPhase = drvSPI0remapClockPhase,
+        .remapClockPhase = drvSPI0remapClockPhase,
 
-    /* SPI Number of clients */
-    .numClients = DRV_SPI_CLIENTS_NUMBER_IDX0,
+        /* SPI Number of clients */
+        .numClients = DRV_SPI_CLIENTS_NUMBER_IDX0,
 
-    /* SPI Client Objects Pool */
-    .clientObjPool = (uintptr_t)&drvSPI0ClientObjPool[0],
+        /* SPI Client Objects Pool */
+        .clientObjPool = (uintptr_t)&drvSPI0ClientObjPool[0],
 
-    /* DMA Channel for Transmit */
-    .dmaChannelTransmit = DRV_SPI_XMIT_DMA_CH_IDX0,
+        /* DMA Channel for Transmit */
+        .dmaChannelTransmit = DRV_SPI_XMIT_DMA_CH_IDX0,
 
-    /* DMA Channel for Receive */
-    .dmaChannelReceive  = DRV_SPI_RCV_DMA_CH_IDX0,
+        /* DMA Channel for Receive */
+        .dmaChannelReceive = DRV_SPI_RCV_DMA_CH_IDX0,
 
-    /* SPI Transmit Register */
-    .spiTransmitAddress =  (void *)&(SERCOM4_REGS->SPIM.SERCOM_DATA),
+        /* SPI Transmit Register */
+        .spiTransmitAddress = (void*)&(SERCOM4_REGS->SPIM.SERCOM_DATA),
 
-    /* SPI Receive Register */
-    .spiReceiveAddress  = (void *)&(SERCOM4_REGS->SPIM.SERCOM_DATA),
+        /* SPI Receive Register */
+        .spiReceiveAddress = (void*)&(SERCOM4_REGS->SPIM.SERCOM_DATA),
 
-    /* SPI Queue Size */
-    .transferObjPoolSize = DRV_SPI_QUEUE_SIZE_IDX0,
+        /* SPI Queue Size */
+        .transferObjPoolSize = DRV_SPI_QUEUE_SIZE_IDX0,
 
-    /* SPI Transfer Objects Pool */
-    .transferObjPool = (uintptr_t)&drvSPI0TransferObjPool[0],
+        /* SPI Transfer Objects Pool */
+        .transferObjPool = (uintptr_t)&drvSPI0TransferObjPool[0],
 
-    /* SPI interrupt sources (SPI peripheral and DMA) */
-    .interruptSources = &drvSPI0InterruptSources,
+        /* SPI interrupt sources (SPI peripheral and DMA) */
+        .interruptSources = &drvSPI0InterruptSources,
 };
 
 // </editor-fold>
@@ -185,28 +182,28 @@ SYSTEM_OBJECTS sysObj;
 // *****************************************************************************
 
 const SYS_CMD_INIT sysCmdInit =
-{
-    .moduleInit = {0},
-    .consoleCmdIOParam = SYS_CMD_SINGLE_CHARACTER_READ_CONSOLE_IO_PARAM,
-	.consoleIndex = 0,
+    {
+        .moduleInit        = {0},
+        .consoleCmdIOParam = SYS_CMD_SINGLE_CHARACTER_READ_CONSOLE_IO_PARAM,
+        .consoleIndex      = 0,
 };
 
 // <editor-fold defaultstate="collapsed" desc="SYS_TIME Initialization Data">
 
 const SYS_TIME_PLIB_INTERFACE sysTimePlibAPI = {
-    .timerCallbackSet = (SYS_TIME_PLIB_CALLBACK_REGISTER)TC3_TimerCallbackRegister,
-    .timerStart = (SYS_TIME_PLIB_START)TC3_TimerStart,
-    .timerStop = (SYS_TIME_PLIB_STOP)TC3_TimerStop,
+    .timerCallbackSet  = (SYS_TIME_PLIB_CALLBACK_REGISTER)TC3_TimerCallbackRegister,
+    .timerStart        = (SYS_TIME_PLIB_START)TC3_TimerStart,
+    .timerStop         = (SYS_TIME_PLIB_STOP)TC3_TimerStop,
     .timerFrequencyGet = (SYS_TIME_PLIB_FREQUENCY_GET)TC3_TimerFrequencyGet,
-    .timerPeriodSet = (SYS_TIME_PLIB_PERIOD_SET)TC3_Timer16bitPeriodSet,
-    .timerCompareSet = (SYS_TIME_PLIB_COMPARE_SET)TC3_Timer16bitCompareSet,
-    .timerCounterGet = (SYS_TIME_PLIB_COUNTER_GET)TC3_Timer16bitCounterGet,
+    .timerPeriodSet    = (SYS_TIME_PLIB_PERIOD_SET)TC3_Timer16bitPeriodSet,
+    .timerCompareSet   = (SYS_TIME_PLIB_COMPARE_SET)TC3_Timer16bitCompareSet,
+    .timerCounterGet   = (SYS_TIME_PLIB_COUNTER_GET)TC3_Timer16bitCounterGet,
 };
 
 const SYS_TIME_INIT sysTimeInitData =
-{
-    .timePlib = &sysTimePlibAPI,
-    .hwTimerIntNum = TC3_IRQn,
+    {
+        .timePlib      = &sysTimePlibAPI,
+        .hwTimerIntNum = TC3_IRQn,
 };
 
 // </editor-fold>
@@ -217,32 +214,29 @@ const SYS_TIME_INIT sysTimeInitData =
 extern const SYS_CONSOLE_DEV_DESC sysConsoleUARTDevDesc;
 
 const SYS_CONSOLE_UART_PLIB_INTERFACE sysConsole0UARTPlibAPI =
-{
-    .read = (SYS_CONSOLE_UART_PLIB_READ)SERCOM5_USART_Read,
-	.readCountGet = (SYS_CONSOLE_UART_PLIB_READ_COUNT_GET)SERCOM5_USART_ReadCountGet,
-	.readFreeBufferCountGet = (SYS_CONSOLE_UART_PLIB_READ_FREE_BUFFFER_COUNT_GET)SERCOM5_USART_ReadFreeBufferCountGet,
-    .write = (SYS_CONSOLE_UART_PLIB_WRITE)SERCOM5_USART_Write,
-	.writeCountGet = (SYS_CONSOLE_UART_PLIB_WRITE_COUNT_GET)SERCOM5_USART_WriteCountGet,
-	.writeFreeBufferCountGet = (SYS_CONSOLE_UART_PLIB_WRITE_FREE_BUFFER_COUNT_GET)SERCOM5_USART_WriteFreeBufferCountGet,
+    {
+        .read                    = (SYS_CONSOLE_UART_PLIB_READ)SERCOM5_USART_Read,
+        .readCountGet            = (SYS_CONSOLE_UART_PLIB_READ_COUNT_GET)SERCOM5_USART_ReadCountGet,
+        .readFreeBufferCountGet  = (SYS_CONSOLE_UART_PLIB_READ_FREE_BUFFFER_COUNT_GET)SERCOM5_USART_ReadFreeBufferCountGet,
+        .write                   = (SYS_CONSOLE_UART_PLIB_WRITE)SERCOM5_USART_Write,
+        .writeCountGet           = (SYS_CONSOLE_UART_PLIB_WRITE_COUNT_GET)SERCOM5_USART_WriteCountGet,
+        .writeFreeBufferCountGet = (SYS_CONSOLE_UART_PLIB_WRITE_FREE_BUFFER_COUNT_GET)SERCOM5_USART_WriteFreeBufferCountGet,
 };
 
 const SYS_CONSOLE_UART_INIT_DATA sysConsole0UARTInitData =
-{
-    .uartPLIB = &sysConsole0UARTPlibAPI,    
+    {
+        .uartPLIB = &sysConsole0UARTPlibAPI,
 };
 
 const SYS_CONSOLE_INIT sysConsole0Init =
-{
-    .deviceInitData = (const void*)&sysConsole0UARTInitData,
-    .consDevDesc = &sysConsoleUARTDevDesc,
-    .deviceIndex = 0,
+    {
+        .deviceInitData = (const void*)&sysConsole0UARTInitData,
+        .consDevDesc    = &sysConsoleUARTDevDesc,
+        .deviceIndex    = 0,
 };
 
 
-
 // </editor-fold>
-
-
 
 
 // *****************************************************************************
@@ -250,7 +244,6 @@ const SYS_CONSOLE_INIT sysConsole0Init =
 // Section: Local initialization functions
 // *****************************************************************************
 // *****************************************************************************
-
 
 
 /*******************************************************************************
@@ -263,21 +256,19 @@ const SYS_CONSOLE_INIT sysConsole0Init =
   Remarks:
  */
 
-void SYS_Initialize ( void* data )
+void SYS_Initialize(void* data)
 {
     NVMCTRL_REGS->NVMCTRL_CTRLB = NVMCTRL_CTRLB_RWS(3);
 
-  
+
     PORT_Initialize();
 
     CLOCK_Initialize();
 
 
-
-
     SERCOM3_I2C_Initialize();
 
-    NVMCTRL_Initialize( );
+    NVMCTRL_Initialize();
 
     EVSYS_Initialize();
 
@@ -299,20 +290,18 @@ void SYS_Initialize ( void* data )
     sysObj.drvWifiWinc = WDRV_WINC_Initialize(0, NULL);
 
     /* Initialize SPI0 Driver Instance */
-    sysObj.drvSPI0 = DRV_SPI_Initialize(DRV_SPI_INDEX_0, (SYS_MODULE_INIT *)&drvSPI0InitData);
+    sysObj.drvSPI0 = DRV_SPI_Initialize(DRV_SPI_INDEX_0, (SYS_MODULE_INIT*)&drvSPI0InitData);
 
     SYS_CMD_Initialize((SYS_MODULE_INIT*)&sysCmdInit);
 
-    sysObj.sysTime = SYS_TIME_Initialize(SYS_TIME_INDEX_0, (SYS_MODULE_INIT *)&sysTimeInitData);
-    sysObj.sysConsole0 = SYS_CONSOLE_Initialize(SYS_CONSOLE_INDEX_0, (SYS_MODULE_INIT *)&sysConsole0Init);
-
+    sysObj.sysTime     = SYS_TIME_Initialize(SYS_TIME_INDEX_0, (SYS_MODULE_INIT*)&sysTimeInitData);
+    sysObj.sysConsole0 = SYS_CONSOLE_Initialize(SYS_CONSOLE_INDEX_0, (SYS_MODULE_INIT*)&sysConsole0Init);
 
 
     APP_Initialize();
 
 
     NVIC_Initialize();
-
 }
 
 

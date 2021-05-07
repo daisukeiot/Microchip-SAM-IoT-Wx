@@ -332,7 +332,7 @@ static void OtaUpdateCb(uint8_t u8OtaUpdateStatusType ,uint8_t u8OtaUpdateStatus
     }
     else if(u8OtaUpdateStatusType == SW_STATUS) {
         if(u8OtaUpdateStatus == OTA_STATUS_SUCCESS) {
-            M2M_INFO("Now OTA successfully done");
+            M2M_INFO("  M2M: Now OTA successfully done");
             // Start the host SW upgrade then system reset is required (Reinitialize the driver)
         }
     }
@@ -365,7 +365,7 @@ int main (void)
     s8Ret = m2m_wifi_init(&param);
     if (M2M_SUCCESS != s8Ret)
     {
-        M2M_ERR("Driver Init Failed <%d>\n",s8Ret);
+        M2M_ERR("  M2M: Driver Init Failed <%d>\n",s8Ret);
         while(1);
     }
     // Initialize the OTA module
@@ -595,7 +595,7 @@ static void wifi_event_cb(uint8_t u8WiFiEvent, void * pvMsg)
         s8Ret = m2m_ota_host_file_get(acURL, FileGetCallback);
         if(s8Ret != M2M_SUCCESS)
         {
-            M2M_ERR("File Download Failed!\n");
+            M2M_ERR("  M2M: File Download Failed!\n");
         }
     }
     break;
@@ -605,7 +605,7 @@ static void wifi_event_cb(uint8_t u8WiFiEvent, void * pvMsg)
 
 static void OtaUpdateCb(uint8_t u8OtaUpdateStatusType ,uint8_t u8OtaUpdateStatus)
 {
-    M2M_INFO("%d %d\n",u8OtaUpdateStatusType,u8OtaUpdateStatus);
+    M2M_INFO("  M2M: %d %d\n",u8OtaUpdateStatusType,u8OtaUpdateStatus);
 
     if(u8OtaUpdateStatus == OTA_STATUS_SUCCESS)
     {
@@ -627,7 +627,7 @@ static void FileGetCallback(uint8_t u8Status, uint8_t u8Handler, uint32_t u32Siz
     }
     else
     {
-        M2M_ERR("File Get Failed!\n");
+        M2M_ERR("  M2M: File Get Failed!\n");
         // File Get Failed
     }
 }
@@ -651,7 +651,7 @@ static void ReadFileSPI(void)
     s8Ret = m2m_ota_host_file_read_spi(gstrAppFile.u8Handler, gstrAppFile.au8Buff, gstrAppFile.u32Offset, u32AmountToRead);
 
     if(M2M_SUCCESS == s8Ret)
-        M2M_INFO("\nFile Read completed, Offset: %lu, Size of Read: %lu.\n", gstrAppFile.u32Offset, u32AmountToRead);
+        M2M_INFO("  M2M: \nFile Read completed, Offset: %lu, Size of Read: %lu.\n", gstrAppFile.u32Offset, u32AmountToRead);
 
     // *** Do something with the contents of gstrAppFile.au8Buff ***
 
@@ -677,7 +677,7 @@ void main(void)
     int8_t s8Ret = m2m_wifi_init(&gstrWifiParam);
     if (M2M_SUCCESS != s8Ret)
     {
-        M2M_ERR("Driver Init Failed <%d>\n",s8Ret);
+        M2M_ERR("  M2M: Driver Init Failed <%d>\n",s8Ret);
         while(1);
     }
 

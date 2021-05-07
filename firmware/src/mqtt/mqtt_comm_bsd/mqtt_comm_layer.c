@@ -31,66 +31,67 @@
 #include "../../iot_config/IoT_Sensor_Node_config.h"
 #include "../mqtt_core/mqtt_core.h"
 #include "../../services/iot/cloud/bsd_adapter/bsdWINC.h"
-#include "../../debug_print.h"
+#include "debug_print.h"
 
-#define TX_BUFF_SIZE 400
-#define RX_BUFF_SIZE 100
-#define USER_LENGTH 0
+#define TX_BUFF_SIZE         400
+#define RX_BUFF_SIZE         2096
+#define USER_LENGTH          0
 #define MQTT_KEEP_ALIVE_TIME 120
 
 static mqttContext mqttConn;
-static uint8_t mqttTxBuff[TX_BUFF_SIZE];
-static uint8_t mqttRxBuff[RX_BUFF_SIZE];
-static int8_t  mqqtSocket = -1;
+static uint8_t     mqttTxBuff[TX_BUFF_SIZE];
+static uint8_t     mqttRxBuff[RX_BUFF_SIZE];
+static int8_t      mqqtSocket = -1;
 
 void MQTT_ClientInitialise(void)
 {
-	MQTT_initialiseState();
-	memset(mqttTxBuff, 0 , sizeof(TX_BUFF_SIZE));
-	memset(mqttRxBuff, 0 , sizeof(RX_BUFF_SIZE));
-	mqttConn.mqttDataExchangeBuffers.txbuff.start = mqttTxBuff;
-	mqttConn.mqttDataExchangeBuffers.txbuff.bufferLength = TX_BUFF_SIZE;
-	mqttConn.mqttDataExchangeBuffers.txbuff.currentLocation = mqttConn.mqttDataExchangeBuffers.txbuff.start;
-	mqttConn.mqttDataExchangeBuffers.txbuff.dataLength = 0;
-	mqttConn.mqttDataExchangeBuffers.rxbuff.start = mqttRxBuff;
-	mqttConn.mqttDataExchangeBuffers.rxbuff.bufferLength = RX_BUFF_SIZE;
-	mqttConn.mqttDataExchangeBuffers.rxbuff.currentLocation = mqttConn.mqttDataExchangeBuffers.rxbuff.start;
-	mqttConn.mqttDataExchangeBuffers.rxbuff.dataLength = 0;
-   
-   mqttConn.tcpClientSocket = &mqqtSocket;
+    MQTT_initialiseState();
+    memset(mqttTxBuff, 0, sizeof(TX_BUFF_SIZE));
+    memset(mqttRxBuff, 0, sizeof(RX_BUFF_SIZE));
+    mqttConn.mqttDataExchangeBuffers.txbuff.start           = mqttTxBuff;
+    mqttConn.mqttDataExchangeBuffers.txbuff.bufferLength    = TX_BUFF_SIZE;
+    mqttConn.mqttDataExchangeBuffers.txbuff.currentLocation = mqttConn.mqttDataExchangeBuffers.txbuff.start;
+    mqttConn.mqttDataExchangeBuffers.txbuff.dataLength      = 0;
+    mqttConn.mqttDataExchangeBuffers.rxbuff.start           = mqttRxBuff;
+    mqttConn.mqttDataExchangeBuffers.rxbuff.bufferLength    = RX_BUFF_SIZE;
+    mqttConn.mqttDataExchangeBuffers.rxbuff.currentLocation = mqttConn.mqttDataExchangeBuffers.rxbuff.start;
+    mqttConn.mqttDataExchangeBuffers.rxbuff.dataLength      = 0;
+
+    mqttConn.tcpClientSocket = &mqqtSocket;
 }
 
 mqttContext* MQTT_GetClientConnectionInfo()
 {
-	return &mqttConn;
+    return &mqttConn;
 }
 
 
-bool MQTT_Send(mqttContext *connectionPtr)
+bool MQTT_Send(mqttContext* connectionPtr)
 {
-	bool ret = false;
-	int sendRet;
-	if((sendRet = BSD_send(*connectionPtr->tcpClientSocket, connectionPtr->mqttDataExchangeBuffers.txbuff.start, connectionPtr->mqttDataExchangeBuffers.txbuff.dataLength, 0)) > BSD_SUCCESS)
-	{
-		ret = true;
-	}
-	
-	debug_print("MQTT: sendresult (%d)", sendRet);
-	return ret;
+    bool ret = false;
+    int  sendRet;
+    if ((sendRet = BSD_send(*connectionPtr->tcpClientSocket, connectionPtr->mqttDataExchangeBuffers.txbuff.start, connectionPtr->mqttDataExchangeBuffers.txbuff.dataLength, 0)) > BSD_SUCCESS)
+    {
+        ret = true;
+    }
+
+    //debug_print(" MQTT: sendresult (%d)", sendRet);
+    return ret;
 }
 
-bool MQTT_Close(mqttContext *connectionPtr)
+bool MQTT_Close(mqttContext* connectionPtr)
 {
-	bool ret = false;
-	if(BSD_close(*connectionPtr->tcpClientSocket) == BSD_SUCCESS)
-	{
-		ret = true;
-	}
-	return ret;
+    debug_printGood(" MQTT: MQTT Close");
+    bool ret = false;
+    if (BSD_close(*connectionPtr->tcpClientSocket) == BSD_SUCCESS)
+    {
+        ret = true;
+    }
+    return ret;
 }
 
-void MQTT_GetReceivedData(uint8_t *pData, uint8_t len)
+void MQTT_GetReceivedData(uint8_t* pData, uint16_t len)
 {
-	MQTT_ExchangeBufferInit(&mqttConn.mqttDataExchangeBuffers.rxbuff);
-	MQTT_ExchangeBufferWrite(&mqttConn.mqttDataExchangeBuffers.rxbuff, pData, len);
+    MQTT_ExchangeBufferInit(&mqttConn.mqttDataExchangeBuffers.rxbuff);
+    MQTT_ExchangeBufferWrite(&mqttConn.mqttDataExchangeBuffers.rxbuff, pData, len);
 }

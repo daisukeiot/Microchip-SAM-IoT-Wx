@@ -58,7 +58,7 @@
 #include "configuration.h"
 
 // DOM-IGNORE-BEGIN
-#ifdef __cplusplus  // Provide C++ Compatibility
+#ifdef __cplusplus   // Provide C++ Compatibility
 
 extern "C" {
 
@@ -87,11 +87,11 @@ extern "C" {
 typedef enum
 {
     /* Application's state machine's initial state. */
-    APP_STATE_CRYPTO_INIT=0,
+    APP_STATE_CRYPTO_INIT = 0,
     APP_STATE_WDRV_INIT,
     APP_STATE_WDRV_INIT_READY,
     APP_STATE_WDRV_OPEN,
-    APP_STATE_WDRV_ACTIV,            
+    APP_STATE_WDRV_ACTIV,
 } APP_STATES;
 
 // *****************************************************************************
@@ -161,7 +161,7 @@ typedef struct
     This routine must be called from the SYS_Initialize function.
 */
 
-void APP_Initialize ( void );
+void APP_Initialize(void);
 
 
 /*******************************************************************************
@@ -194,30 +194,35 @@ void APP_Initialize ( void );
     This routine must be called from SYS_Tasks() routine.
  */
 
-void APP_Tasks( void );
+void APP_Tasks(void);
 
 void APP_DebugPrintf(const char* format, ...);
 
 char APP_HexToChar(uint8_t hex);
 
-void APP_DebugPrintBuffer(const uint8_t *pBuf, uint16_t bufLen);
+void APP_DebugPrintBuffer(const uint8_t* pBuf, uint16_t bufLen);
 
+void set_deviceId(char* id);
 
 typedef union
 {
     uint8_t allBits;
     struct
     {
-        unsigned amDisconnecting :1;
-        unsigned haveAPConnection :1;
-        unsigned haveERROR :1;
-        unsigned :5;
+        unsigned amDisconnecting : 1;
+        unsigned haveAPConnection : 1;
+        unsigned haveERROR : 1;
+        unsigned : 5;
     };
 } shared_networking_params_t;
+
 extern shared_networking_params_t shared_networking_params;
 
 void APP_application_post_provisioning(void);
-void APP_ReceivedFromCloud(uint8_t *topic, uint8_t *payload);
+void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload);
+void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload);
+void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
+
 #endif /* _APP_H */
 
 //DOM-IGNORE-BEGIN
@@ -229,4 +234,3 @@ void APP_ReceivedFromCloud(uint8_t *topic, uint8_t *payload);
 /*******************************************************************************
  End of File
  */
-

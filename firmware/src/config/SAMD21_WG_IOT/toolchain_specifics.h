@@ -24,13 +24,13 @@
 #ifndef TOOLCHAIN_SPECIFICS_H
 #define TOOLCHAIN_SPECIFICS_H
 
-#ifdef __cplusplus  // Provide C++ Compatibility
+#ifdef __cplusplus   // Provide C++ Compatibility
 extern "C" {
 #endif
 
 #pragma GCC diagnostic push
 #ifndef __cplusplus
-   #pragma GCC diagnostic ignored "-Wnested-externs"
+#pragma GCC diagnostic ignored "-Wnested-externs"
 #endif
 #pragma GCC diagnostic ignored "-Wsign-conversion"
 #pragma GCC diagnostic ignored "-Wattributes"
@@ -40,14 +40,14 @@ extern "C" {
 
 #include <sys/types.h>
 
-#define NO_INIT        __attribute__((section(".no_init")))
-#define SECTION(a)     __attribute__((__section__(a)))
+#define NO_INIT    __attribute__((section(".no_init")))
+#define SECTION(a) __attribute__((__section__(a)))
 
-#define CACHE_LINE_SIZE    (4u)
+#define CACHE_LINE_SIZE (4u)
 #define CACHE_ALIGN
 
 #ifndef FORMAT_ATTRIBUTE
-   #define FORMAT_ATTRIBUTE(archetype, string_index, first_to_check)  __attribute__ ((format (archetype, string_index, first_to_check)))
+#define FORMAT_ATTRIBUTE(archetype, string_index, first_to_check) __attribute__((format(archetype, string_index, first_to_check)))
 #endif
 
 
@@ -55,5 +55,4 @@ extern "C" {
 }
 #endif
 
-#endif // end of header
-
+#endif   // end of header

@@ -170,17 +170,17 @@ static void Socket_ReadSocketData(SOCKET sock, tstrSocketRecvMsg *pstrRecv,uint8
 
                 if((!gastrSockets[sock].bIsUsed) && (u16ReadCount))
                 {
-                    M2M_DBG("Application Closed Socket While Rx Is not Complete\r\n");
+                    M2M_DBG("  M2M: Application Closed Socket While Rx Is not Complete");
                     if(hif_receive(0, NULL, 0, 1) == M2M_SUCCESS)
-                        M2M_DBG("hif_receive Success\r\n");
+                        M2M_DBG("  M2M: hif_receive Success");
                     else
-                        M2M_DBG("hif_receive Fail\r\n");
+                        M2M_DBG("  M2M: hif_receive Fail");
                     break;
                 }
             }
             else
             {
-                M2M_INFO("(ERRR)Current <%d>\r\n", u16ReadCount);
+                M2M_INFO("  M2M: (ERRR)Current <%d>", u16ReadCount);
                 break;
             }
         }while(u16ReadCount != 0);
@@ -250,7 +250,7 @@ static void m2m_ip_cb(uint8_t u8OpCode, uint16_t u16BufferSize,uint32_t u32Addre
                     ++gu16SessionID;
 
                 gastrSockets[strAcceptReply.sConnectedSock].u16SessionID = gu16SessionID;
-                M2M_DBG("Socket %d session ID = %d\r\n",strAcceptReply.sConnectedSock , gu16SessionID );
+                M2M_DBG("  M2M: Socket %d session ID = %d",strAcceptReply.sConnectedSock , gu16SessionID );
             }
             strAccept.sock = strAcceptReply.sConnectedSock;
             strAccept.strAddr.sin_family        = AF_INET;
@@ -307,7 +307,7 @@ static void m2m_ip_cb(uint8_t u8OpCode, uint16_t u16BufferSize,uint32_t u32Addre
 
             sock            = strRecvReply.sock;
             u16SessionID = strRecvReply.u16SessionID;
-            M2M_DBG("recv callback session ID = %d\r\n",u16SessionID);
+            M2M_DBG("  M2M: recv callback session ID = %d",u16SessionID);
 
             /* Reset the Socket RX Pending Flag.
             */
@@ -345,13 +345,13 @@ static void m2m_ip_cb(uint8_t u8OpCode, uint16_t u16BufferSize,uint32_t u32Addre
             }
             else
             {
-                M2M_DBG("Discard recv callback %d %d\r\n",u16SessionID , gastrSockets[sock].u16SessionID);
+                M2M_DBG("  M2M: Discard recv callback %d %d",u16SessionID , gastrSockets[sock].u16SessionID);
                 if(u16ReadSize < u16BufferSize)
                 {
                     if(hif_receive(0, NULL, 0, 1) == M2M_SUCCESS)
-                        M2M_DBG("hif_receive Success\r\n");
+                        M2M_DBG("  M2M: hif_receive Success");
                     else
-                        M2M_DBG("hif_receive Fail\r\n");
+                        M2M_DBG("  M2M: hif_receive Fail");
                 }
             }
         }
@@ -372,7 +372,7 @@ static void m2m_ip_cb(uint8_t u8OpCode, uint16_t u16BufferSize,uint32_t u32Addre
 
             sock = strReply.sock;
             u16SessionID = strReply.u16SessionID;
-            M2M_DBG("send callback session ID = %d\r\n",u16SessionID);
+            M2M_DBG("  M2M: send callback session ID = %d",u16SessionID);
 
             s16Rcvd = NM_BSP_B_L_16(strReply.s16SentBytes);
 
@@ -383,7 +383,7 @@ static void m2m_ip_cb(uint8_t u8OpCode, uint16_t u16BufferSize,uint32_t u32Addre
             }
             else
             {
-                M2M_DBG("Discard send callback %d %d\r\n",u16SessionID , gastrSockets[sock].u16SessionID);
+                M2M_DBG("  M2M: Discard send callback %d %d",u16SessionID , gastrSockets[sock].u16SessionID);
             }
         }
     }
@@ -562,7 +562,7 @@ SOCKET socket(uint16_t u16Domain, uint8_t u8Type, uint8_t u8Flags)
                 ++gu16SessionID;
 
             pstrSock->u16SessionID = gu16SessionID;
-            M2M_INFO("Socket %d session ID = %d\r\n",sock, gu16SessionID );
+            M2M_INFO("  M2M: Socket %d session ID = %d",sock, gu16SessionID );
 
             if(u8Flags & SOCKET_FLAGS_SSL)
             {
@@ -914,7 +914,7 @@ int8_t shutdown(SOCKET sock)
 {
     int8_t  s8Ret = SOCK_ERR_INVALID_ARG;
 
-    M2M_INFO("Sock to delete <%d>\r\n", sock);
+    M2M_INFO("  M2M: Sock to delete <%d>", sock);
 
     if(sock >= 0 && (gastrSockets[sock].bIsUsed == 1))
     {
@@ -1110,17 +1110,17 @@ static int8_t sslSetSockOpt(SOCKET sock, uint8_t  u8Opt, const void *pvOptVal, u
                 }
                 else
                 {
-                    M2M_ERR("SNI Exceeds Max Length\r\n");
+                    M2M_ERR("  M2M: SNI Exceeds Max Length");
                 }
             }
             else
             {
-                M2M_ERR("Unknown SSL Socket Option %d\r\n",u8Opt);
+                M2M_ERR("  M2M: Unknown SSL Socket Option %d",u8Opt);
             }
         }
         else
         {
-            M2M_ERR("Not SSL Socket\r\n");
+            M2M_ERR("  M2M: Not SSL Socket");
         }
     }
     return s8Ret;

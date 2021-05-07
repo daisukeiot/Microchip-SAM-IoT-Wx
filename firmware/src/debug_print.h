@@ -44,42 +44,90 @@
 #define CSI_CLS     "\33[2J"
 #define CSI_HOME    "\33[1;1H"
 
-typedef enum 
+typedef enum
 {
-   SEVERITY_NONE,
-   SEVERITY_WARNING,
-   SEVERITY_NOTICE,
-   SEVERITY_INFO,
-   SEVERITY_DEBUG
+    SEVERITY_NONE,    // No debug trace
+    SEVERITY_ERROR,   // Error
+    SEVERITY_WARN,    // Error and Warn
+    SEVERITY_DEBUG,   // Error, Warn, and Good
+    SEVERITY_INFO,    // print everything
+    SEVERITY_TRACE
 } debug_severity_t;
 
 typedef enum
 {
-   LEVEL_NORMAL,
-   LEVEL_GOOD,
-   LEVEL_BAD,
-   LEVEL_ERROR
-}debug_errorLevel_t;
+    LEVEL_INFO,
+    LEVEL_GOOD,
+    LEVEL_WARN,
+    LEVEL_ERROR
+} debug_errorLevel_t;
 
-#define IOT_DEBUG_PRINT CFG_DEBUG_MSG
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+static const char*     severity_strings[] = {
+    CSI_WHITE "  NONE" CSI_WHITE,
+    CSI_RED " ERROR" CSI_WHITE,
+    CSI_YELLOW "  WARN" CSI_WHITE,
+    CSI_CYAN " DEBUG" CSI_WHITE,
+    CSI_WHITE "  INFO" CSI_NORMAL CSI_WHITE,
+};
 
-void debug_printer(debug_severity_t debug_severity, debug_errorLevel_t error_level, const char* format, ...);
+static const char* level_strings[] = {
+    CSI_WHITE " INFO" CSI_WHITE,
+    CSI_GREEN " GOOD" CSI_WHITE,
+    CSI_YELLOW " WARN" CSI_WHITE,
+    CSI_RED CSI_INVERSE "ERROR" CSI_NORMAL CSI_WHITE,
+};
+#pragma GCC diagnostic pop
+
+debug_severity_t debug_getSeverity(void);
+
 void debug_setSeverity(debug_severity_t debug_level);
-void debug_setPrefix(const char *prefix);
-void debug_init(const char *prefix);
-void debug_printf(const char* format, ...);
-void debug_NPrintBuff(uint8_t *pBuf, size_t len);
+void debug_printer(debug_severity_t debug_severity, debug_errorLevel_t error_level, const char* format, ...);
+void debug_setPrefix(const char* prefix);
+void debug_init(const char* prefix);
+//void debug_printf(const char* format, ...);
 
-#define debug_print(fmt, ...) \
-do { if (IOT_DEBUG_PRINT) debug_printer(SEVERITY_DEBUG, LEVEL_NORMAL, fmt CSI_RESET, ##__VA_ARGS__); } while (0)
 
-#define debug_printGOOD(fmt, ...) \
-do { if (IOT_DEBUG_PRINT) debug_printer(SEVERITY_DEBUG,LEVEL_GOOD, fmt CSI_RESET,  ##__VA_ARGS__); } while (0)
+#define debug_print(fmt, ...)                                                        \
+    do                                                                               \
+    {                                                                                \
+        if (IOT_DEBUG_PRINT)                                                         \
+            debug_printer(SEVERITY_DEBUG, LEVEL_INFO, fmt CSI_RESET, ##__VA_ARGS__); \
+    } while (0)
 
-#define debug_printError(fmt, ...) \
-do { if (IOT_DEBUG_PRINT) debug_printer(SEVERITY_DEBUG,LEVEL_ERROR, fmt CSI_RESET, ##__VA_ARGS__); } while (0)
+#define debug_printGood(fmt, ...)                                                    \
+    do                                                                               \
+    {                                                                                \
+        if (IOT_DEBUG_PRINT)                                                         \
+            debug_printer(SEVERITY_DEBUG, LEVEL_GOOD, fmt CSI_RESET, ##__VA_ARGS__); \
+    } while (0)
 
-#define debug_printInfo(fmt, ...) \
-do { if (IOT_DEBUG_PRINT) debug_printer(SEVERITY_INFO,LEVEL_NORMAL, fmt CSI_RESET, ##__VA_ARGS__); } while (0)
+#define debug_printWarn(fmt, ...)                                                   \
+    do                                                                              \
+    {                                                                               \
+        if (IOT_DEBUG_PRINT)                                                        \
+            debug_printer(SEVERITY_WARN, LEVEL_WARN, fmt CSI_RESET, ##__VA_ARGS__); \
+    } while (0)
 
-#endif // DEBUG_PRINT_H
+#define debug_printError(fmt, ...)                                                    \
+    do                                                                                \
+    {                                                                                 \
+        if (IOT_DEBUG_PRINT)                                                          \
+            debug_printer(SEVERITY_ERROR, LEVEL_ERROR, fmt CSI_RESET, ##__VA_ARGS__); \
+    } while (0)
+
+#define debug_printInfo(fmt, ...)                                                   \
+    do                                                                              \
+    {                                                                               \
+        if (IOT_DEBUG_PRINT)                                                        \
+            debug_printer(SEVERITY_INFO, LEVEL_INFO, fmt CSI_RESET, ##__VA_ARGS__); \
+    } while (0)
+
+#define debug_printTrace(fmt, ...)                                                   \
+    do                                                                               \
+    {                                                                                \
+        if (IOT_DEBUG_PRINT)                                                         \
+            debug_printer(SEVERITY_TRACE, LEVEL_INFO, fmt CSI_RESET, ##__VA_ARGS__); \
+    } while (0)
+#endif   // DEBUG_PRINT_H

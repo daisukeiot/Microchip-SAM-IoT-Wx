@@ -26,14 +26,12 @@
 */
 
 #ifndef MQTT_CONFIG_H
-#define	MQTT_CONFIG_H
+#define MQTT_CONFIG_H
 
-#define CFG_MQTT_HOST "mqtt.googleapis.com"
-#define CFG_MQTT_PORT 443
-#define CFG_MQTT_CONN_TIMEOUT 10
-#define TOPIC_SIZE				100	//Defines the topic length that is supported when we process a published packet 
-#define PAYLOAD_SIZE            200	//Defines the payload size that is supported when we process a published packet
-#define NUM_TOPICS_SUBSCRIBE	1   //Defines number of topics which can be subscribed
-#define NUM_TOPICS_UNSUBSCRIBE	NUM_TOPICS_SUBSCRIBE	// The MQTT client can unsubscribe only from those topics to which it has already subscribed 
+#define CFG_MQTT_CONN_TIMEOUT    10
+#define TOPIC_SIZE               512U                       // Defines the topic length that is supported when we process a published packet
+#define PAYLOAD_SIZE             1024U                      // Defines the payload size that is supported when we process a published packet
+#define MAX_NUM_TOPICS_SUBSCRIBE 3U                         // Defines number of topics supported for Subscription
+#define NUM_TOPICS_UNSUBSCRIBE   MAX_NUM_TOPICS_SUBSCRIBE   // Client can Un-subscribe only from those topics already subscribed
 
-#endif // MQTT_CONFIG_H
+#endif   // MQTT_CONFIG_H

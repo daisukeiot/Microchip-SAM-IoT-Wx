@@ -27,69 +27,69 @@
 
 #include "mqtt_exchange_buffer.h"
 
-void MQTT_ExchangeBufferInit(exchangeBuffer *buffer)
+void MQTT_ExchangeBufferInit(exchangeBuffer* buffer)
 {
-	buffer->currentLocation = buffer->start;
-	buffer->dataLength = 0;
+    buffer->currentLocation = buffer->start;
+    buffer->dataLength      = 0;
 }
 
-uint16_t MQTT_ExchangeBufferWrite(exchangeBuffer *buffer, uint8_t *data, uint16_t length)
+uint16_t MQTT_ExchangeBufferWrite(exchangeBuffer* buffer, uint8_t* data, uint16_t length)
 {
-	uint8_t *bend = buffer->start + buffer->bufferLength - 1;
-	uint8_t *dend = (buffer->currentLocation - buffer->start + buffer->dataLength) % buffer->bufferLength + buffer->start;
-    uint16_t i = 0;
+    uint8_t* bend = buffer->start + buffer->bufferLength - 1;
+    uint8_t* dend = (buffer->currentLocation - buffer->start + buffer->dataLength) % buffer->bufferLength + buffer->start;
+    uint16_t i    = 0;
 
-	for (i = length; i > 0; i--) 
-	{
-		if (dend > bend)
-		{
-			dend = buffer->start;
-		}
-		if (buffer->dataLength != 0 && dend == buffer->currentLocation)
-		{
-			break;
-		}
-		*dend = *data;
-		dend++;
-		data++;
-		buffer->dataLength++;
-	}
-    
-	return length; 
-}
-
-uint16_t MQTT_ExchangeBufferPeek(exchangeBuffer *buffer, uint8_t *data, uint16_t length)
-{
-	uint8_t *ptr = buffer->currentLocation;
-	uint8_t *bend = buffer->start + buffer->bufferLength - 1;
-	uint16_t i = 0;
-
-	for (i = 0; i < length && i < buffer->dataLength; i++) 
+    for (i = length; i > 0; i--)
     {
-		data[i] = ptr[i];
-		if (ptr > bend)
+        if (dend > bend)
         {
-			ptr = buffer->start;
+            dend = buffer->start;
         }
-	}
+        if (buffer->dataLength != 0 && dend == buffer->currentLocation)
+        {
+            break;
+        }
+        *dend = *data;
+        dend++;
+        data++;
+        buffer->dataLength++;
+    }
 
-	return i;
+    return length;
 }
 
-uint16_t MQTT_ExchangeBufferRead(exchangeBuffer *buffer, uint8_t *data, uint16_t length)
+uint16_t MQTT_ExchangeBufferPeek(exchangeBuffer* buffer, uint8_t* data, uint16_t length)
 {
-	uint8_t *bend = buffer->start + buffer->bufferLength - 1;
-	uint16_t i = 0;
+    uint8_t* ptr  = buffer->currentLocation;
+    uint8_t* bend = buffer->start + buffer->bufferLength - 1;
+    uint16_t i    = 0;
 
-	for (i = 0; i < length && buffer->dataLength > 0; i++) 
+    for (i = 0; i < length && i < buffer->dataLength; i++)
     {
-		data[i] = *buffer->currentLocation;
-		buffer->currentLocation++;
-		buffer->dataLength--;
-		if (buffer->currentLocation > bend)
+        data[i] = ptr[i];
+        if (ptr > bend)
         {
-			buffer->currentLocation = buffer->start;
+            ptr = buffer->start;
         }
-	}
-	return i; 
+    }
+
+    return i;
+}
+
+uint16_t MQTT_ExchangeBufferRead(exchangeBuffer* buffer, uint8_t* data, uint16_t length)
+{
+    uint8_t* bend = buffer->start + buffer->bufferLength - 1;
+    uint16_t i    = 0;
+
+    for (i = 0; i < length && buffer->dataLength > 0; i++)
+    {
+        data[i] = *buffer->currentLocation;
+        buffer->currentLocation++;
+        buffer->dataLength--;
+        if (buffer->currentLocation > bend)
+        {
+            buffer->currentLocation = buffer->start;
+        }
+    }
+    return i;
 }

@@ -316,7 +316,7 @@ int8_t hif_send(uint8_t u8Gid,uint8_t u8Opcode,uint8_t *pu8CtrlBuf,uint16_t u16C
                  */
                 if(cnt >= 500) {
                     if(cnt < 501) {
-                        M2M_INFO("Slowing down...\n");
+                        M2M_INFO("  M2M: Slowing down...\n");
                     }
                     nm_sleep(1);
                 }
@@ -363,7 +363,7 @@ int8_t hif_send(uint8_t u8Gid,uint8_t u8Opcode,uint8_t *pu8CtrlBuf,uint16_t u16C
             else
             {
                 ret = hif_chip_sleep();
-                M2M_DBG("Failed to alloc rx size %d\r\n", ret);
+                M2M_DBG("  M2M: Failed to alloc rx size %d", ret);
                 ret = M2M_ERR_MEM_ALLOC;
                 goto ERR2;
             }
@@ -371,13 +371,13 @@ int8_t hif_send(uint8_t u8Gid,uint8_t u8Opcode,uint8_t *pu8CtrlBuf,uint16_t u16C
         }
         else
         {
-            M2M_ERR("(HIF)Failed to wakeup the chip\r\n");
+            M2M_ERR("  M2M: (HIF)Failed to wakeup the chip");
             goto ERR2;
         }
 	}
 	else
 	{
-        M2M_ERR("HIF message length (%d) exceeds max length (%d)\r\n",strHif.u16Length, M2M_HIF_MAX_PACKET_SIZE);
+        M2M_ERR("  M2M: HIF message length (%d) exceeds max length (%d)",strHif.u16Length, M2M_HIF_MAX_PACKET_SIZE);
         ret = M2M_ERR_SEND;
         goto ERR2;
 	}
@@ -432,7 +432,7 @@ static int8_t hif_isr(void)
                 ret = nm_read_reg_with_ret(WIFI_HOST_RCV_CTRL_1, &address);
                 if(M2M_SUCCESS != ret)
                 {
-                    M2M_ERR("(hif) WIFI_HOST_RCV_CTRL_1 bus fail\r\n");
+                    M2M_ERR("  M2M: (hif) WIFI_HOST_RCV_CTRL_1 bus fail");
                     goto ERR1;
                 }
                 gstrHifCxt.u32RxAddr = address;
@@ -441,14 +441,14 @@ static int8_t hif_isr(void)
                 strHif.u16Length = NM_BSP_B_L_16(strHif.u16Length);
                 if(M2M_SUCCESS != ret)
                 {
-                    M2M_ERR("(hif) address bus fail\r\n");
+                    M2M_ERR("  M2M: (hif) address bus fail");
                     goto ERR1;
                 }
                 if(strHif.u16Length != size)
                 {
                     if((size - strHif.u16Length) > 4)
                     {
-                        M2M_ERR("(hif) Corrupted packet Size = %u <L = %u, G = %u, OP = %02X>\r\n",
+                        M2M_ERR("  M2M: (hif) Corrupted packet Size = %u <L = %u, G = %u, OP = %02X>",
                             size, strHif.u16Length, strHif.u8Gid, strHif.u8Opcode);
                         ret = M2M_ERR_BUS_FAIL;
                         goto ERR1;
@@ -462,51 +462,51 @@ static int8_t hif_isr(void)
                     if(gstrHifCxt.pfWifiCb)
                         gstrHifCxt.pfWifiCb(strHif.u8Opcode,strHif.u16Length - M2M_HIF_HDR_OFFSET, address + M2M_HIF_HDR_OFFSET);
                     else
-                        M2M_ERR("WIFI callback is not registered\r\n");
+                        M2M_ERR("  M2M: WIFI callback is not registered");
                 }
                 else if(M2M_REQ_GROUP_IP == strHif.u8Gid)
                 {
                     if(gstrHifCxt.pfIpCb)
                         gstrHifCxt.pfIpCb(strHif.u8Opcode,strHif.u16Length - M2M_HIF_HDR_OFFSET, address + M2M_HIF_HDR_OFFSET);
                     else
-                        M2M_ERR("Socket callback is not registered\r\n");
+                        M2M_ERR("  M2M: Socket callback is not registered");
                 }
                 else if(M2M_REQ_GROUP_OTA == strHif.u8Gid)
                 {
                     if(gstrHifCxt.pfOtaCb)
                         gstrHifCxt.pfOtaCb(strHif.u8Opcode,strHif.u16Length - M2M_HIF_HDR_OFFSET, address + M2M_HIF_HDR_OFFSET);
                     else
-                        M2M_ERR("Ota callback is not registered\r\n");
+                        M2M_ERR("  M2M: Ota callback is not registered");
                 }
                 else if(M2M_REQ_GROUP_CRYPTO == strHif.u8Gid)
                 {
                     if(gstrHifCxt.pfCryptoCb)
                         gstrHifCxt.pfCryptoCb(strHif.u8Opcode,strHif.u16Length - M2M_HIF_HDR_OFFSET, address + M2M_HIF_HDR_OFFSET);
                     else
-                        M2M_ERR("Crypto callback is not registered\r\n");
+                        M2M_ERR("  M2M: Crypto callback is not registered");
                 }
                 else if(M2M_REQ_GROUP_SIGMA == strHif.u8Gid)
                 {
                     if(gstrHifCxt.pfSigmaCb)
                         gstrHifCxt.pfSigmaCb(strHif.u8Opcode,strHif.u16Length - M2M_HIF_HDR_OFFSET, address + M2M_HIF_HDR_OFFSET);
                     else
-                        M2M_ERR("Sigma callback is not registered\r\n");
+                        M2M_ERR("  M2M: Sigma callback is not registered");
                 }
                 else if(M2M_REQ_GROUP_SSL == strHif.u8Gid)
                 {
                     if(gstrHifCxt.pfSslCb)
                         gstrHifCxt.pfSslCb(strHif.u8Opcode,strHif.u16Length - M2M_HIF_HDR_OFFSET, address + M2M_HIF_HDR_OFFSET);
                     else
-                        M2M_ERR("SSL callback is not registered\r\n");
+                        M2M_ERR("  M2M: SSL callback is not registered");
                 }
                 else
                 {
-                    M2M_ERR("(hif) invalid group ID\r\n");
+                    M2M_ERR("  M2M: (hif) invalid group ID");
                     return M2M_ERR_BUS_FAIL;
                 }
                 if(gstrHifCxt.u8HifRXDone)
                 {
-                    M2M_ERR("(hif) host app didn't set RX Done <%u><%X>\r\n", strHif.u8Gid, strHif.u8Opcode);
+                    M2M_ERR("  M2M: (hif) host app didn't set RX Done <%u><%X>", strHif.u8Gid, strHif.u8Opcode);
                     ret = hif_set_rx_done();
                     if(ret != M2M_SUCCESS)
                         return ret;
@@ -516,20 +516,20 @@ static int8_t hif_isr(void)
             }
             else
             {
-                M2M_ERR("(hif) Wrong size\r\n");
+                M2M_ERR("  M2M: (hif) Wrong size");
                 ret = M2M_ERR_RCV;
                 goto ERR1;
             }
         }
         else
         {
-            M2M_ERR("(hif) False interrupt %lx\r\n",reg);
+            M2M_ERR("  M2M: (hif) False interrupt %lx",reg);
             goto ERR1;
         }
     }
     else
     {
-        M2M_ERR("(hif) Failed to read interrupt reg\r\n");
+        M2M_ERR("  M2M: (hif) Failed to read interrupt reg");
         goto ERR1;
     }
 
@@ -551,14 +551,14 @@ int8_t hif_handle_isr(void)
     ret = hif_chip_wake();
     if (M2M_SUCCESS != ret)
     {
-        M2M_ERR("(hif) FAIL to wakeup the chip\r\n");
+        M2M_ERR("  M2M: (hif) FAIL to wakeup the chip");
     }
     else
     {
         ret = hif_isr();
         if (M2M_SUCCESS != ret)
         {
-            M2M_ERR("(hif) Fail to handle interrupt %d try again..\r\n",ret);
+            M2M_ERR("  M2M: (hif) Fail to handle interrupt %d try again..",ret);
 
             hif_chip_sleep();
         }
@@ -596,7 +596,7 @@ int8_t hif_receive(uint32_t u32Addr, uint8_t *pu8Buf, uint16_t u16Sz, uint8_t is
         else
         {
             ret = M2M_ERR_FAIL;
-            M2M_ERR(" hif_receive: Invalid argument\r\n");
+            M2M_ERR("  M2M:  hif_receive: Invalid argument");
         }
         goto ERR1;
     }
@@ -604,13 +604,13 @@ int8_t hif_receive(uint32_t u32Addr, uint8_t *pu8Buf, uint16_t u16Sz, uint8_t is
     if(u16Sz > gstrHifCxt.u32RxSize)
     {
         ret = M2M_ERR_FAIL;
-        M2M_ERR("APP Requested Size is larger than the received buffer size <%u><%lu>\r\n", u16Sz, gstrHifCxt.u32RxSize);
+        M2M_ERR("  M2M: APP Requested Size is larger than the received buffer size <%u><%lu>", u16Sz, gstrHifCxt.u32RxSize);
         goto ERR1;
     }
     if((u32Addr < gstrHifCxt.u32RxAddr)||((u32Addr + u16Sz)>(gstrHifCxt.u32RxAddr + gstrHifCxt.u32RxSize)))
     {
         ret = M2M_ERR_FAIL;
-        M2M_ERR("APP Requested Address beyond the received buffer address and length\r\n");
+        M2M_ERR("  M2M: APP Requested Address beyond the received buffer address and length");
         goto ERR1;
     }
 
@@ -666,7 +666,7 @@ int8_t hif_register_cb(uint8_t u8Grp,tpfHifCallBack fn)
             gstrHifCxt.pfSslCb = fn;
             break;
         default:
-            M2M_ERR("GRp ? %d\r\n", u8Grp);
+            M2M_ERR("  M2M: GRp ? %d", u8Grp);
             ret = M2M_ERR_FAIL;
             break;
     }

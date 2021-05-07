@@ -2725,7 +2725,7 @@ void wifi_event_cb(uint8_t u8WiFiEvent, void * pvMsg)
     case M2M_WIFI_RESP_CURRENT_RSSI:
         {
             int8_t   *rssi = (int8_t*)pvMsg;
-            M2M_INFO("ch rssi %d\n",*rssi);
+            M2M_INFO("  M2M: ch rssi %d\n",*rssi);
         }
         break;
     default:
@@ -3125,11 +3125,11 @@ int8_t m2m_wifi_set_lsn_int(tstrM2mLsnInt *pstrM2mLsnInt);
     {
         if((NULL != pstrWifiRxPacket) && (0 != u16PayloadSize)) {
             if(MANAGEMENT == pstrWifiRxPacket->u8FrameType) {
-                M2M_INFO("***# MGMT PACKET #***\n");
+                M2M_INFO("  M2M: ***# MGMT PACKET #***\n");
             } else if(DATA_BASICTYPE == pstrWifiRxPacket->u8FrameType) {
-                M2M_INFO("***# DATA PACKET #***\n");
+                M2M_INFO("  M2M: ***# DATA PACKET #***\n");
             } else if(CONTROL == pstrWifiRxPacket->u8FrameType) {
-                M2M_INFO("***# CONTROL PACKET #***\n");
+                M2M_INFO("  M2M: ***# CONTROL PACKET #***\n");
             }
         }
     }

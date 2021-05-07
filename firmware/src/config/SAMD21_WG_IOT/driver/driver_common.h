@@ -56,7 +56,7 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-    extern "C" {
+extern "C" {
 #endif
 
 // *****************************************************************************
@@ -99,26 +99,26 @@
 typedef enum
 {
     /* Read */
-    DRV_IO_INTENT_READ               /*DOM-IGNORE-BEGIN*/ = 1 << 0 /* DOM-IGNORE-END*/,
+    DRV_IO_INTENT_READ /*DOM-IGNORE-BEGIN*/ = 1 << 0 /* DOM-IGNORE-END*/,
 
     /* Write */
-    DRV_IO_INTENT_WRITE              /*DOM-IGNORE-BEGIN*/ = 1 << 1 /* DOM-IGNORE-END*/,
+    DRV_IO_INTENT_WRITE /*DOM-IGNORE-BEGIN*/ = 1 << 1 /* DOM-IGNORE-END*/,
 
     /* Read and Write*/
-    DRV_IO_INTENT_READWRITE          /*DOM-IGNORE-BEGIN*/ \
-            = DRV_IO_INTENT_READ|DRV_IO_INTENT_WRITE /* DOM-IGNORE-END*/,
+    DRV_IO_INTENT_READWRITE /*DOM-IGNORE-BEGIN*/
+    = DRV_IO_INTENT_READ | DRV_IO_INTENT_WRITE /* DOM-IGNORE-END*/,
 
     /* The driver will block and will return when the operation is complete */
-    DRV_IO_INTENT_BLOCKING           /*DOM-IGNORE-BEGIN*/ = 0 << 2 /* DOM-IGNORE-END*/,
+    DRV_IO_INTENT_BLOCKING /*DOM-IGNORE-BEGIN*/ = 0 << 2 /* DOM-IGNORE-END*/,
 
     /* The driver will return immediately */
-    DRV_IO_INTENT_NONBLOCKING        /*DOM-IGNORE-BEGIN*/ = 1 << 2 /* DOM-IGNORE-END*/,
+    DRV_IO_INTENT_NONBLOCKING /*DOM-IGNORE-BEGIN*/ = 1 << 2 /* DOM-IGNORE-END*/,
 
     /* The driver will support only one client at a time */
-    DRV_IO_INTENT_EXCLUSIVE          /*DOM-IGNORE-BEGIN*/ = 1 << 3 /* DOM-IGNORE-END*/,
+    DRV_IO_INTENT_EXCLUSIVE /*DOM-IGNORE-BEGIN*/ = 1 << 3 /* DOM-IGNORE-END*/,
 
     /* The driver will support multiple clients at a time */
-    DRV_IO_INTENT_SHARED             /*DOM-IGNORE-BEGIN*/ = 0 << 3 /* DOM-IGNORE-END*/
+    DRV_IO_INTENT_SHARED /*DOM-IGNORE-BEGIN*/ = 0 << 3 /* DOM-IGNORE-END*/
 
 } DRV_IO_INTENT;
 
@@ -142,23 +142,23 @@ typedef enum
 typedef enum
 {
     /* Indicates that a driver-specific error has occurred. */
-    DRV_CLIENT_STATUS_ERROR_EXTENDED   = -10,
+    DRV_CLIENT_STATUS_ERROR_EXTENDED = -10,
 
     /* An unspecified error has occurred.*/
-    DRV_CLIENT_STATUS_ERROR            =  -1,
+    DRV_CLIENT_STATUS_ERROR = -1,
 
     /* The driver is closed, no operations for this client are ongoing,
     and/or the given handle is invalid. */
-    DRV_CLIENT_STATUS_CLOSED           =   0,
+    DRV_CLIENT_STATUS_CLOSED = 0,
 
     /* The driver is currently busy and cannot start additional operations. */
-    DRV_CLIENT_STATUS_BUSY             =   1,
+    DRV_CLIENT_STATUS_BUSY = 1,
 
     /* The module is running and ready for additional operations */
-    DRV_CLIENT_STATUS_READY            =   2,
+    DRV_CLIENT_STATUS_READY = 2,
 
     /* Indicates that the module is in a driver-specific ready/run state. */
-    DRV_CLIENT_STATUS_READY_EXTENDED   =  10
+    DRV_CLIENT_STATUS_READY_EXTENDED = 10
 
 } DRV_CLIENT_STATUS;
 
@@ -176,7 +176,7 @@ typedef enum
     None.
 */
 
-#define DRV_IO_ISBLOCKING(intent)          (intent & DRV_IO_INTENT_BLOCKING)
+#define DRV_IO_ISBLOCKING(intent) (intent & DRV_IO_INTENT_BLOCKING)
 
 
 // *****************************************************************************
@@ -192,7 +192,7 @@ typedef enum
     None.
 */
 
-#define DRV_IO_ISNONBLOCKING(intent)       (intent & DRV_IO_INTENT_NONBLOCKING )
+#define DRV_IO_ISNONBLOCKING(intent) (intent & DRV_IO_INTENT_NONBLOCKING)
 
 
 // *****************************************************************************
@@ -208,7 +208,7 @@ typedef enum
     None.
 */
 
-#define DRV_IO_ISEXCLUSIVE(intent)       (intent & DRV_IO_INTENT_EXCLUSIVE)
+#define DRV_IO_ISEXCLUSIVE(intent) (intent & DRV_IO_INTENT_EXCLUSIVE)
 
 
 // *****************************************************************************
@@ -226,16 +226,16 @@ typedef enum
 typedef enum
 {
     // Operation does not apply to any buffer
-    DRV_IO_BUFFER_TYPE_NONE      = 0x00,
+    DRV_IO_BUFFER_TYPE_NONE = 0x00,
 
     // Operation applies to read buffer
-    DRV_IO_BUFFER_TYPE_READ      = 0x01,
+    DRV_IO_BUFFER_TYPE_READ = 0x01,
 
     // Operation applies to write buffer
-    DRV_IO_BUFFER_TYPE_WRITE     = 0x02,
+    DRV_IO_BUFFER_TYPE_WRITE = 0x02,
 
     // Operation applies to both read and write buffers
-    DRV_IO_BUFFER_TYPE_RW        = DRV_IO_BUFFER_TYPE_READ|DRV_IO_BUFFER_TYPE_WRITE
+    DRV_IO_BUFFER_TYPE_RW = DRV_IO_BUFFER_TYPE_READ | DRV_IO_BUFFER_TYPE_WRITE
 
 } DRV_IO_BUFFER_TYPES;
 
@@ -281,14 +281,14 @@ typedef uintptr_t DRV_HANDLE;
     None.
 */
 
-#define DRV_HANDLE_INVALID  (((DRV_HANDLE) -1))
+#define DRV_HANDLE_INVALID (((DRV_HANDLE)-1))
 
 
 #ifdef __cplusplus
-    }
+}
 #endif
 
-#endif //DRIVER_COMMON_H
+#endif   //DRIVER_COMMON_H
 
 /*******************************************************************************
  End of File

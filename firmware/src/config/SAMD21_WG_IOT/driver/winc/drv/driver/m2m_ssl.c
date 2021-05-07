@@ -149,7 +149,7 @@ static void m2m_ssl_cb(uint8_t u8OpCode, uint16_t u16DataSize, uint32_t u32Addr)
     }
     if(s8tmp != M2M_SUCCESS)
     {
-        M2M_ERR("Error receiving SSL from the HIF\n");
+        M2M_ERR("  M2M: Error receiving SSL from the HIF\n");
     }
 }
 
@@ -197,7 +197,7 @@ int8_t m2m_ssl_send_certs_to_winc(uint8_t* pu8Buffer, uint32_t u32BufferSz)
 		pchkhdr->u16Offset32 = 0;
 		pchkhdr->u16Size32 = (u32BufferSz + 3) >> 2;
 		s8Ret = hif_send(M2M_REQ_GROUP_SSL, (M2M_SSL_REQ_WRITE_OWN_CERTS | M2M_REQ_DATA_PKT), NULL, 0, pu8Buffer, u32BufferSz, 0);
-		M2M_INFO("Transferred %u bytes of cert data NON-CHUNKED\n", u32BufferSz);
+		M2M_INFO("  M2M: Transferred %u bytes of cert data NON-CHUNKED\n", u32BufferSz);
 	}
 	else
 	{
@@ -219,7 +219,7 @@ int8_t m2m_ssl_send_certs_to_winc(uint8_t* pu8Buffer, uint32_t u32BufferSz)
 		pchkhdr->u16Offset32 = ((ofs + 3) >> 2);
 		pchkhdr->u16Size32 = ((thischunksz + 3) >> 2);
 		s8Ret = hif_send(M2M_REQ_GROUP_SSL, (M2M_SSL_REQ_WRITE_OWN_CERTS | M2M_REQ_DATA_PKT), NULL, 0, &pu8Buffer[ofs], thischunksz, 0);
-		M2M_INFO("Transferred %u bytes of cert data CHUNKED to offset %u total %u\n", thischunksz, ofs, u32BufferSz);
+		M2M_INFO("  M2M: Transferred %u bytes of cert data CHUNKED to offset %u total %u\n", thischunksz, ofs, u32BufferSz);
 		memcpy(&pu8Buffer[ofs], saveblob, CHUNKHDRSZ);
 		ofs += thischunksz;
 
@@ -235,7 +235,7 @@ int8_t m2m_ssl_send_certs_to_winc(uint8_t* pu8Buffer, uint32_t u32BufferSz)
 			pchkhdr->u16Offset32 = ((ofs + 3) >> 2);
 			pchkhdr->u16Size32 = ((thischunksz + 3) >> 2);
 			s8Ret = hif_send(M2M_REQ_GROUP_SSL, (M2M_SSL_REQ_WRITE_OWN_CERTS | M2M_REQ_DATA_PKT), NULL, 0, &pu8Buffer[ofs - CHUNKHDRSZ], thischunksz + CHUNKHDRSZ, 0);
-			M2M_INFO("Transferred %u bytes of cert data CHUNKED to offset %u total %u\n", thischunksz, ofs, u32BufferSz);
+			M2M_INFO("  M2M: Transferred %u bytes of cert data CHUNKED to offset %u total %u\n", thischunksz, ofs, u32BufferSz);
 			memcpy(&pu8Buffer[ofs - CHUNKHDRSZ], saveblob, CHUNKHDRSZ);
 			ofs += thischunksz;
 		}
@@ -398,7 +398,7 @@ int8_t m2m_ssl_init(tpfAppSSLCb pfAppSSLCb)
     s8Ret = hif_register_cb(M2M_REQ_GROUP_SSL,m2m_ssl_cb);
     if (s8Ret != M2M_SUCCESS)
     {
-        M2M_ERR("hif_register_cb() failed with ret=%d", s8Ret);
+        M2M_ERR("  M2M: hif_register_cb() failed with ret=%d", s8Ret);
     }
     return s8Ret;
 }

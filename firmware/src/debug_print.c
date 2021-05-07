@@ -31,37 +31,27 @@
 #include "debug_print.h"
 #include "definitions.h"
 
-#define APP_PRINT_BUFFER_SIZ    2048
+#define APP_PRINT_BUFFER_SIZE 512
 
-static char printBuff[APP_PRINT_BUFFER_SIZ] __attribute__((aligned(4)));
-static int printBuffPtr;
+static char                   printBuff[APP_PRINT_BUFFER_SIZE] __attribute__((aligned(4)));
+static int                    printBuffPtr;
 static OSAL_MUTEX_HANDLE_TYPE consoleMutex;
+static debug_severity_t       debug_severity_filter    = SEVERITY_NONE;
+static char                   debug_message_prefix[25] = "sn000000000000000000";
 
-static const char *severity_strings[] = {
-   CSI_WHITE   "   NONE" CSI_WHITE,
-   CSI_YELLOW  "WARNING" CSI_WHITE,
-   CSI_BLUE    " NOTICE" CSI_WHITE,
-   CSI_MAGENTA "   INFO" CSI_WHITE,
-   CSI_RED     "  DEBUG" CSI_NORMAL CSI_WHITE
-};
+char tmpBuf[APP_PRINT_BUFFER_SIZE];
+char tmpFormat[APP_PRINT_BUFFER_SIZE];
 
-static const char *level_strings[] = {
-      CSI_WHITE           "NORMAL" CSI_WHITE,
-      CSI_GREEN           "  GOOD" CSI_WHITE,
-      CSI_RED             "   BAD" CSI_WHITE,
-      CSI_RED CSI_INVERSE " ERROR" CSI_NORMAL CSI_WHITE
-};
- 
-static debug_severity_t debug_severity_filter = SEVERITY_NONE;
-static char debug_message_prefix[25] = "<PREFIX>";
+void debug_init(const char* prefix)
+{
+    if (prefix)
+    {
+        debug_setPrefix(prefix);
+    }
 
-void debug_init(const char *prefix)
-{ 
-    debug_setPrefix(prefix);
-    debug_setSeverity(SEVERITY_DEBUG);
+    debug_setSeverity(SEVERITY_INFO);
     printBuffPtr = 0;
     OSAL_MUTEX_Create(&consoleMutex);
-    
 }
 
 void debug_setSeverity(debug_severity_t debug_level)
@@ -69,64 +59,61 @@ void debug_setSeverity(debug_severity_t debug_level)
     debug_severity_filter = debug_level;
 }
 
-void debug_setPrefix(const char *prefix)
+debug_severity_t debug_getSeverity(void)
 {
-   strncpy(debug_message_prefix,prefix,sizeof(debug_message_prefix));
+    return debug_severity_filter;
+}
+
+void debug_setPrefix(const char* prefix)
+{
+    strncpy(debug_message_prefix, prefix, sizeof(debug_message_prefix));
+    debug_message_prefix[strlen(debug_message_prefix)] = 0;
 }
 
 void debug_printer(debug_severity_t debug_severity, debug_errorLevel_t error_level, const char* format, ...)
 {
-    char tmpBuf[APP_PRINT_BUFFER_SIZ];
-    size_t len = 0;
+    size_t  len = 0;
     va_list args;
-    
-    if(debug_severity >= SEVERITY_NONE && debug_severity <= SEVERITY_DEBUG)
+
+    if (debug_severity >= SEVERITY_NONE && debug_severity <= SEVERITY_TRACE)
     {
-        if(debug_severity <= debug_severity_filter)
+        if (debug_severity <= debug_severity_filter)
         {
-            if(error_level < LEVEL_NORMAL) error_level = LEVEL_NORMAL;
-            if(error_level > LEVEL_ERROR) error_level = LEVEL_ERROR;
+            if (error_level < LEVEL_INFO)
+                error_level = LEVEL_INFO;
 
-           debug_printf("%s\4 %s %s ",debug_message_prefix, severity_strings[debug_severity], level_strings[error_level]);
+            if (error_level > LEVEL_ERROR)
+                error_level = LEVEL_ERROR;
 
-            va_start( args, format );
-            len = vsnprintf(tmpBuf, APP_PRINT_BUFFER_SIZ, format, args);
-            va_end( args );
-            debug_NPrintBuff((uint8_t*)tmpBuf, len);;
-            debug_printf(CSI_RESET"\r\n");
-        }
-    }
-}
-
-void debug_NPrintBuff(uint8_t *pBuf, size_t len)
-{
-    if ((len > 0) && (len < APP_PRINT_BUFFER_SIZ))
-    {
-        if (OSAL_RESULT_TRUE == OSAL_MUTEX_Lock(&consoleMutex, OSAL_WAIT_FOREVER))
-        {
-            if ((len + printBuffPtr) > APP_PRINT_BUFFER_SIZ)
+            if (error_level == LEVEL_WARN)
             {
-                printBuffPtr = 0;
+                len = 0;
             }
 
-            memcpy(&printBuff[printBuffPtr], pBuf, len);
-            SYS_CONSOLE_Write(0, &printBuff[printBuffPtr], len);
+            if (OSAL_RESULT_TRUE == OSAL_MUTEX_Lock(&consoleMutex, OSAL_WAIT_FOREVER))
+            {
+                sprintf(tmpFormat, "%s %s %s %s\r\n" CSI_RESET, debug_message_prefix, severity_strings[debug_severity], level_strings[error_level], format);
 
-            printBuffPtr = (printBuffPtr + len + 3) & ~3;
+                va_start(args, format);
+                len = vsnprintf(tmpBuf, APP_PRINT_BUFFER_SIZE, tmpFormat, args);
+                va_end(args);
 
-            OSAL_MUTEX_Unlock(&consoleMutex);
+                if ((len > 0) && (len < APP_PRINT_BUFFER_SIZE))
+                {
+                    char *pBuf;
+                    if ((len + printBuffPtr) > APP_PRINT_BUFFER_SIZE)
+                    {
+                        printBuffPtr = 0;
+                    }
+
+                    memcpy(&printBuff[printBuffPtr], tmpBuf, len);
+                    pBuf = &printBuff[printBuffPtr];
+                    printBuff[printBuffPtr + len + 1] = '\0';
+                    printBuffPtr = (printBuffPtr + len + 3) & ~3;
+                    SYS_CONSOLE_Write(0, pBuf, len);
+                }
+                OSAL_MUTEX_Unlock(&consoleMutex);
+            }
         }
     }
-}
-
-void debug_printf(const char* format, ...)
-{
-    char tmpBuf[APP_PRINT_BUFFER_SIZ];
-    size_t len = 0;
-    va_list args;
-    va_start( args, format );
-
-    len = vsnprintf(tmpBuf, APP_PRINT_BUFFER_SIZ, format, args);
-    va_end( args );
-    debug_NPrintBuff((uint8_t*)tmpBuf, len);
 }

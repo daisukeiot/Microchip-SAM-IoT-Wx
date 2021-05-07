@@ -330,7 +330,7 @@ int8_t chip_wake(void)
     {
         ret = nm_read_reg_with_ret(CLOCKS_EN_REG, (uint32_t *)&clk_status_reg);
         if(ret != M2M_SUCCESS) {
-            M2M_ERR("Bus error (5).%d %x\n",ret,clk_status_reg);
+            M2M_ERR("  M2M: Bus error (5).%d %x\n",ret,clk_status_reg);
             goto _WAKE_EXIT;
         }
         if(clk_status_reg & NBIT2) {
@@ -340,7 +340,7 @@ int8_t chip_wake(void)
         trials++;
         if(trials > WAKUP_TRAILS_TIMEOUT)
         {
-            M2M_ERR("Failed to wake up the chip\r\n");
+            M2M_ERR("  M2M: Failed to wake up the chip");
             ret = M2M_ERR_TIME_OUT;
             goto _WAKE_EXIT;
         }
@@ -410,7 +410,7 @@ int8_t wait_for_bootrom(uint8_t arg)
 
             if(++cnt > TIMEOUT)
             {
-                M2M_DBG("failed to load firmware from flash.\r\n");
+                M2M_DBG("  M2M: failed to load firmware from flash.");
                 ret = M2M_ERR_INIT;
                 goto ERR2;
             }
@@ -436,7 +436,7 @@ int8_t wait_for_bootrom(uint8_t arg)
     } else {
         chip_apply_conf(u32GpReg1);
     }
-    M2M_INFO("DriverVerInfo: 0x%08lx\r\n", u32DriverVerInfo);
+    M2M_INFO("  M2M: DriverVerInfo: 0x%08lx", u32DriverVerInfo);
 
     nm_write_reg(BOOTROM_REG,M2M_START_FIRMWARE);
 
@@ -467,11 +467,11 @@ int8_t wait_for_firmware_start(uint8_t arg)
     while (checkValue != reg)
     {
         nm_sleep(2); /* TODO: Why bus error if this delay is not here. */
-        M2M_DBG("%x %x %x\r\n",(unsigned int)nm_read_reg(0x108c),(unsigned int)nm_read_reg(0x108c),(unsigned int)nm_read_reg(0x14A0));
+        M2M_DBG("  M2M: %x %x %x",(unsigned int)nm_read_reg(0x108c),(unsigned int)nm_read_reg(0x108c),(unsigned int)nm_read_reg(0x14A0));
         reg = nm_read_reg(regAddress);
         if(++cnt >= u32Timeout)
         {
-            M2M_DBG("Time out for wait firmware Run\n");
+            M2M_DBG("  M2M: Time out for wait firmware Run\n");
             ret = M2M_ERR_INIT;
             goto ERR;
         }
@@ -494,13 +494,13 @@ int8_t chip_deinit(void)
     **/
     ret = nm_read_reg_with_ret(NMI_GLB_RESET_0, &reg);
     if (ret != M2M_SUCCESS) {
-        M2M_ERR("failed to de-initialize\r\n");
+        M2M_ERR("  M2M: failed to de-initialize");
         goto ERR1;
     }
     reg &= ~(1 << 10);
     ret = nm_write_reg(NMI_GLB_RESET_0, reg);
     if (ret != M2M_SUCCESS) {
-        M2M_ERR("failed to de-initialize\r\n");
+        M2M_ERR("  M2M: failed to de-initialize");
         goto ERR1;
     }
 
@@ -567,7 +567,7 @@ int8_t pullup_ctrl(uint32_t pinmask, uint8_t enable)
     uint32_t val32;
     s8Ret = nm_read_reg_with_ret(0x142c, &val32);
     if(s8Ret != M2M_SUCCESS) {
-        M2M_ERR("[pullup_ctrl]: failed to read\r\n");
+        M2M_ERR("  M2M: [pullup_ctrl]: failed to read");
         goto _EXIT;
     }
     if(enable) {
@@ -577,7 +577,7 @@ int8_t pullup_ctrl(uint32_t pinmask, uint8_t enable)
     }
     s8Ret = nm_write_reg(0x142c, val32);
     if(s8Ret  != M2M_SUCCESS) {
-        M2M_ERR("[pullup_ctrl]: failed to write\r\n");
+        M2M_ERR("  M2M: [pullup_ctrl]: failed to write");
         goto _EXIT;
     }
 _EXIT:
@@ -599,12 +599,12 @@ int8_t nmi_get_otp_mac_address(uint8_t *pu8MacAddr,  uint8_t * pu8IsValid)
     u32RegValue = strgp.u32Mac_efuse_mib;
 
     if(!EFUSED_MAC(u32RegValue)) {
-        M2M_DBG("Default MAC\r\n");
+        M2M_DBG("  M2M: Default MAC");
         memset(pu8MacAddr, 0, 6);
         goto _EXIT_ERR;
     }
 
-    M2M_DBG("OTP MAC\r\n");
+    M2M_DBG("  M2M: OTP MAC");
     u32RegValue >>= 16;
     ret = nm_read_block(u32RegValue|0x30000, mac, 6);
     memcpy(pu8MacAddr,mac,6);
