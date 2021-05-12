@@ -57,6 +57,10 @@
 #include <stdlib.h>
 #include "configuration.h"
 
+#include "azure/core/az_span.h"
+#include "azure/core/az_json.h"
+#include "azure/iot/az_iot_pnp_client.h"
+
 // DOM-IGNORE-BEGIN
 #ifdef __cplusplus   // Provide C++ Compatibility
 
@@ -222,6 +226,8 @@ void APP_application_post_provisioning(void);
 void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload);
 void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload);
 void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
+int32_t APP_GetLightSensorValue(void);
+float APP_GetTempSensorValue(void);
 
 #endif /* _APP_H */
 
@@ -230,6 +236,8 @@ void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
 }
 #endif
 //DOM-IGNORE-END
+
+
 
 /*******************************************************************************
  End of File

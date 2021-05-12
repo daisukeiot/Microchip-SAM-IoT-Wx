@@ -65,14 +65,11 @@
 #include "credentials_storage/credentials_storage.h"
 #include "debug_print.h"
 #include "led.h"
-#include "mqtt/mqtt_core/mqtt_core.h"
+#include "azutil.h"
+//include "mqtt/mqtt_core/mqtt_core.h"
 #include "services/iot/cloud/mqtt_packetPopulation/mqtt_packetPopulate.h"
 #include "services/iot/cloud/mqtt_packetPopulation/mqtt_iothub_packetPopulate.h"
 #include "services/iot/cloud/mqtt_packetPopulation/mqtt_iotprovisioning_packetPopulate.h"
-
-#include "azure/core/az_span.h"
-#include "azure/core/az_json.h"
-#include "azure/iot/az_iot_pnp_client.h"
 
 #if CFG_ENABLE_CLI
 #include "system/command/sys_command.h"
@@ -83,16 +80,17 @@
 // Section: Local Function Prototypes
 // *****************************************************************************
 // *****************************************************************************
-static void    APP_SendToCloud(void);
-static float   APP_GetTempSensorValue(void);
-static int32_t APP_GetLightSensorValue(void);
-static void    APP_DataTask(void);
-static void    APP_WiFiConnectionStateChanged(uint8_t status);
-static void    APP_ProvisionRespCb(DRV_HANDLE handle, WDRV_WINC_SSID* targetSSID, WDRV_WINC_AUTH_CONTEXT* authCtx, bool status);
-static void    APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress);
-static void    APP_GetTimeNotifyCb(DRV_HANDLE handle, uint32_t timeUTC);
-static void    APP_ConnectNotifyCb(DRV_HANDLE handle, WDRV_WINC_CONN_STATE currentState, WDRV_WINC_CONN_ERROR errorCode);
+static void APP_SendToCloud(void);
+static void APP_DataTask(void);
+static void APP_WiFiConnectionStateChanged(uint8_t status);
+static void APP_ProvisionRespCb(DRV_HANDLE handle, WDRV_WINC_SSID* targetSSID, WDRV_WINC_AUTH_CONTEXT* authCtx, bool status);
+static void APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress);
+static void APP_GetTimeNotifyCb(DRV_HANDLE handle, uint32_t timeUTC);
+static void APP_ConnectNotifyCb(DRV_HANDLE handle, WDRV_WINC_CONN_STATE currentState, WDRV_WINC_CONN_ERROR errorCode);
 
+#ifdef CFG_MQTT_PROVISIONING_HOST
+void iot_provisioning_completed(void);
+#endif
 // *****************************************************************************
 // *****************************************************************************
 // Section: Application Macros
@@ -102,6 +100,7 @@ static void    APP_ConnectNotifyCb(DRV_HANDLE handle, WDRV_WINC_CONN_STATE curre
 #define APP_WIFI_SOFT_AP         0
 #define APP_WIFI_DEFAULT         1
 #define APP_DATATASK_INTERVAL    1000L   //1000msec
+#define APP_CLOUDTASK_INTERVAL   1000L   //1000msec
 #define APP_SW_DEBOUNCE_INTERVAL 1460000L
 
 /* WIFI SSID, AUTH and PWD for AP */
@@ -138,12 +137,14 @@ shared_networking_params_t shared_networking_params;
 static DRV_HANDLE wdrvHandle;
 uint8_t           mode = WIFI_DEFAULT;
 
-SYS_TIME_HANDLE App_DataTaskHandle      = SYS_TIME_HANDLE_INVALID;
-volatile bool   App_DataTaskTmrExpired  = false;
-SYS_TIME_HANDLE App_CloudTaskHandle     = SYS_TIME_HANDLE_INVALID;
-volatile bool   App_CloudTaskTmrExpired = false;
+static SYS_TIME_HANDLE App_DataTaskHandle      = SYS_TIME_HANDLE_INVALID;
+volatile bool          App_DataTaskTmrExpired  = false;
+static SYS_TIME_HANDLE App_CloudTaskHandle     = SYS_TIME_HANDLE_INVALID;
+volatile bool          App_CloudTaskTmrExpired = false;
 
-static uint8_t telemetryInterval = CFG_SEND_INTERVAL;
+volatile uint32_t telemetryInterval = CFG_SEND_INTERVAL;
+
+volatile bool iothubConnected = false;
 
 extern pf_MQTT_CLIENT    pf_mqtt_iotprovisioning_client;
 extern pf_MQTT_CLIENT    pf_mqtt_iothub_client;
@@ -326,19 +327,9 @@ static void APP_ProvisionRespCb(DRV_HANDLE handle, WDRV_WINC_SSID* targetSSID,
     }
 }
 
-#ifdef CFG_MQTT_PROVISIONING_HOST
-void iot_provisioning_completed(void)
-{
-    debug_printInfo("  APP: %s()", __FUNCTION__);
-    CLOUD_init_host(hub_hostname, attDeviceID, &pf_mqtt_iothub_client);
-    CLOUD_disconnect();
-    CLOUD_reset();
-    App_DataTaskHandle = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb, 0, APP_DATATASK_INTERVAL, SYS_TIME_PERIODIC);
-}
-#endif   //CFG_MQTT_PROVISIONING_HOST
-
 void APP_Tasks(void)
 {
+
     switch (appData.state)
     {
         case APP_STATE_CRYPTO_INIT: {
@@ -415,23 +406,24 @@ void APP_Tasks(void)
             pDcpt->pfProvConnectInfoCB = APP_ProvisionRespCb;
             wifi_init(APP_WiFiConnectionStateChanged, mode);
 
-            if (mode == WIFI_DEFAULT)
-            {
-                /* Enable use of DHCP for network configuration, DHCP is the default
-                but this also registers the callback for notifications. */
-                WDRV_WINC_IPUseDHCPSet(wdrvHandle, &APP_DHCPAddressEventCb);
-
-                App_CloudTaskHandle = SYS_TIME_CallbackRegisterMS(APP_CloudTaskcb, 0, 500, SYS_TIME_PERIODIC);
-                WDRV_WINC_BSSReconnect(wdrvHandle, &APP_ConnectNotifyCb);
-                WDRV_WINC_SystemTimeGetCurrent(wdrvHandle, &APP_GetTimeNotifyCb);
-            }
-
 #ifdef CFG_MQTT_PROVISIONING_HOST
             pf_mqtt_iotprovisioning_client.MQTT_CLIENT_task_completed = iot_provisioning_completed;
             CLOUD_init_host(CFG_MQTT_PROVISIONING_HOST, attDeviceID, &pf_mqtt_iotprovisioning_client);
 #else
             CLOUD_init_host(hub_hostname, attDeviceID, &pf_mqtt_iothub_client);
 #endif   //CFG_MQTT_PROVISIONING_HOST
+
+            if (mode == WIFI_DEFAULT)
+            {
+                /* Enable use of DHCP for network configuration, DHCP is the default
+                but this also registers the callback for notifications. */
+                WDRV_WINC_IPUseDHCPSet(wdrvHandle, &APP_DHCPAddressEventCb);
+
+                debug_printError("  APP: registering APP_CloudTaskcb");
+                App_CloudTaskHandle = SYS_TIME_CallbackRegisterMS(APP_CloudTaskcb, 0, 500, SYS_TIME_PERIODIC);
+                WDRV_WINC_BSSReconnect(wdrvHandle, &APP_ConnectNotifyCb);
+                WDRV_WINC_SystemTimeGetCurrent(wdrvHandle, &APP_GetTimeNotifyCb);
+            }
 
             appData.state = APP_STATE_WDRV_ACTIV;
             break;
@@ -482,10 +474,15 @@ static void APP_DataTask(void)
         {
             previousTransmissionTime = timeNow;
 
-            // Call the data task in main.c
+            // send telemetry
             APP_SendToCloud();
         }
     }
+    else
+    {
+        //debug_printWarn("  APP: %s() not connected", __FUNCTION__);
+    }
+
     if (shared_networking_params.haveAPConnection)
     {
         LED_SetBlue(LED_STATE_HOLD);
@@ -514,12 +511,13 @@ static void APP_DataTask(void)
     }
 }
 
+
 //
 // Command (Direct Method)
 //
 void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
 {
-    az_result rc;
+    az_result                         rc;
     az_iot_pnp_client_command_request command_request;
 
     debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
@@ -530,7 +528,7 @@ void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
         return;
     }
 
-    az_span command_topic_span   = az_span_create(topic, strlen((char*)topic));
+    az_span command_topic_span = az_span_create(topic, strlen((char*)topic));
 
     rc = az_iot_pnp_client_commands_parse_received_topic(&pnp_client, command_topic_span, &command_request);
 
@@ -544,30 +542,45 @@ void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
 
 void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
 {
-    az_result rc;
-    az_iot_pnp_client_property_response property_response;
+    az_result         rc;
+    twin_properties_t twin_properties;
 
-    debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
+    init_twin_data(&twin_properties);
 
-    if (topic == NULL)
+    twin_properties.flag.isGet = 0;
+
+    debug_printInfo("  APP: >> %s() Payload %s", __FUNCTION__, payload);
+
+    if (az_result_failed(rc = parse_twin_property(topic, payload, &twin_properties)))
     {
-        debug_printWarn("  APP: Twin topic empty");
-        return;
+        // If the item can't be found, the desired temp might not be set so take no action
+        debug_printError("  APP: Could not parse desired property, return code 0x%08x\n", rc);
+    }
+    else
+    {
+
+        if (twin_properties.flag.yellow_led_found == 1)
+        {
+            debug_printInfo("AZURE: Found led_y value %d", twin_properties.desired_led_yellow);
+        }
+
+        if (twin_properties.flag.telemetry_interval_found == 1)
+        {
+            debug_printInfo("AZURE: Found telemetryInterval value %d", telemetryInterval);
+        }
+        // update_leds(&twin_properties);
+        // send_reported_property(&twin_properties);
     }
 
-    az_span property_topic_span   = az_span_create(topic, strlen((char*)topic));
-
-    rc = az_iot_pnp_client_property_parse_received_topic(&pnp_client, property_topic_span, &property_response);
-
-    // ToDo : Add code to process twin
-
-    debug_printInfo("  APP: << %s() type %d 0x%08x", __FUNCTION__, property_response.response_type, rc);
+    debug_printInfo("  APP: << %s() rc = 0x%08x", __FUNCTION__, rc);
 }
 
 void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload)
 {
-    az_result rc;
-    az_iot_pnp_client_property_response property_response;
+    az_result         rc;
+    twin_properties_t twin_properties;
+
+    init_twin_data(&twin_properties);
 
     if (topic == NULL)
     {
@@ -575,20 +588,43 @@ void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload)
         return;
     }
 
-    debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
+    twin_properties.flag.isGet = 1;
 
-    az_span property_topic_span   = az_span_create(topic, strlen((char*)topic));
+    iothubConnected = true;
 
-    rc = az_iot_pnp_client_property_parse_received_topic(&pnp_client, property_topic_span, &property_response);
+    debug_printInfo("  APP: >> %s() Payload %s", __FUNCTION__, payload);
 
-    debug_printInfo("  APP: << %s() type %d 0x%08x", __FUNCTION__, property_response.response_type, rc);
+    if (az_result_failed(rc = parse_twin_property(topic, payload, &twin_properties)))
+    {
+        // If the item can't be found, the desired temp might not be set so take no action
+        debug_printError("  MAIN: Could not parse desired property, return code 0x%08x\n", rc);
+    }
+    else
+    {
+        if (twin_properties.flag.yellow_led_found == 1)
+        {
+            debug_printInfo("AZURE: Found led_y value %d", twin_properties.desired_led_yellow);
+        }
+        else
+        {
+        }
+
+        if (twin_properties.flag.telemetry_interval_found == 1)
+        {
+            debug_printInfo("AZURE: Found telemetryInterval value %d", telemetryInterval);
+        }
+
+        // update_leds(&twin_properties);
+        send_reported_property(&twin_properties);
+    }
+
+    debug_printInfo("  APP: << %s() rc = 0x%08x", __FUNCTION__, rc);
 }
 
-//
-// Telemetry
-//
-
-static float APP_GetTempSensorValue(void)
+/**********************************************
+* Read Temperature Sensor value
+**********************************************/
+float APP_GetTempSensorValue(void)
 {
     float retVal = 0;
     /* TA: AMBIENT TEMPERATURE REGISTER ADDRESS: 0x5 */
@@ -631,6 +667,9 @@ static float APP_GetTempSensorValue(void)
     return retVal;
 }
 
+/**********************************************
+* Build light sensor value
+**********************************************/
 int32_t APP_GetLightSensorValue(void)
 {
     uint32_t input_voltage = 0;
@@ -650,32 +689,44 @@ int32_t APP_GetLightSensorValue(void)
     return retVal;
 }
 
-static int send_telemetry_message(void)
-{
-    int rc = 0;
-
-    int16_t temp  = APP_GetTempSensorValue();
-    int32_t light = APP_GetLightSensorValue();
-
-    debug_print("  APP: Light: %d Temperature: %d", light, temp);
-
-    // ToDo : Add code to send telemetry
-
-    return rc;
-}
-
-// This will get called every 1 second only while we have a valid Cloud connection
+/**********************************************
+* Entry point for telemetry
+**********************************************/
 void APP_SendToCloud(void)
 {
-    send_telemetry_message();
+    if (iothubConnected)
+    {
+        RETURN_WITH_MESSAGE_IF_FAILED(
+            send_telemetry_message(),
+            "Failed to send telemetry");
+    }
 }
+
+#ifdef CFG_MQTT_PROVISIONING_HOST
+void iot_provisioning_completed(void)
+{
+    debug_printInfo("  APP: %s()", __FUNCTION__);
+    pf_mqtt_iothub_client.MQTT_CLIENT_task_completed = APP_application_post_provisioning;
+    CLOUD_init_host(hub_hostname, attDeviceID, &pf_mqtt_iothub_client);
+    CLOUD_disconnect();
+    CLOUD_reset();
+    App_DataTaskHandle = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb, 0, APP_DATATASK_INTERVAL, SYS_TIME_PERIODIC);
+}
+#endif   //CFG_MQTT_PROVISIONING_HOST
 
 void APP_application_post_provisioning(void)
 {
-    App_CloudTaskHandle = SYS_TIME_CallbackRegisterMS(APP_CloudTaskcb, 0, 500,
+    debug_printTrace("  APP: >> %s()", __FUNCTION__);
+
+    App_CloudTaskHandle = SYS_TIME_CallbackRegisterMS(APP_CloudTaskcb,
+                                                      0,
+                                                      APP_CLOUDTASK_INTERVAL,
                                                       SYS_TIME_PERIODIC);
-    App_DataTaskHandle  = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb, 0,
-                                                     APP_DATATASK_INTERVAL, SYS_TIME_PERIODIC);
+
+    App_DataTaskHandle = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb,
+                                                     0,
+                                                     APP_DATATASK_INTERVAL,
+                                                     SYS_TIME_PERIODIC);
 }
 
 /*******************************************************************************

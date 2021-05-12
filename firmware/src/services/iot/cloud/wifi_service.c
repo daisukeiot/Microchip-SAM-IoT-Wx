@@ -118,7 +118,7 @@ void wifi_init(void (*funcPtr)(uint8_t), uint8_t mode)
 
 bool wifi_connectToAp(uint8_t passed_wifi_creds)
 {
-    int8_t e = 0;
+    int8_t e = M2M_SUCCESS;
 
     LED_SetBlue(LED_STATE_BLINK_FAST);
 
@@ -126,7 +126,7 @@ bool wifi_connectToAp(uint8_t passed_wifi_creds)
     {
         e = m2m_wifi_connect((char*)ssid, sizeof(ssid), atoi((char*)authType), (char*)pass, M2M_WIFI_CH_ALL);
     }
-    else
+    else if (shared_networking_params.haveAPConnection == 0)
     {
         e = m2m_wifi_default_connect();
     }
@@ -144,7 +144,7 @@ bool wifi_connectToAp(uint8_t passed_wifi_creds)
 bool wifi_disconnectFromAp(void)
 {
     int8_t m2mDisconnectError;
- 
+
     debug_printInfo(" WIFI: disconnect from AP");
 
     if (shared_networking_params.haveAPConnection == 1)
@@ -218,7 +218,7 @@ void WiFi_ConStateCb(tenuM2mConnState status)
         {
             SYS_TIME_TimerStop(softApConnectTaskHandle);
             responseFromProvisionConnect = false;
-            ntpTimeFetchTaskHandle = SYS_TIME_CallbackRegisterMS(ntpTimeFetchTaskcb, 0, CLOUD_NTP_TASK_INTERVAL, SYS_TIME_PERIODIC);
+            ntpTimeFetchTaskHandle       = SYS_TIME_CallbackRegisterMS(ntpTimeFetchTaskcb, 0, CLOUD_NTP_TASK_INTERVAL, SYS_TIME_PERIODIC);
             APP_application_post_provisioning();
         }
 
@@ -229,7 +229,7 @@ void WiFi_ConStateCb(tenuM2mConnState status)
     }
     else if (status == M2M_WIFI_DISCONNECTED)
     {
-        checkBackTaskHandle                      = SYS_TIME_CallbackRegisterMS(checkBackTaskcb, 0, CLOUD_WIFI_TASK_INTERVAL, SYS_TIME_SINGLE);
+        checkBackTaskHandle = SYS_TIME_CallbackRegisterMS(checkBackTaskcb, 0, CLOUD_WIFI_TASK_INTERVAL, SYS_TIME_SINGLE);
         LED_SetBlue(LED_STATE_BLINK_SLOW);
         shared_networking_params.amDisconnecting = 1;
     }

@@ -120,8 +120,8 @@ static void dps_assigning_task(uintptr_t context)
         mqttPublishPacket cloudPublishPacket;
         // Fixed header
         cloudPublishPacket.publishHeaderFlags.duplicate = 0;
-        cloudPublishPacket.publishHeaderFlags.qos       = 1;
-        cloudPublishPacket.publishHeaderFlags.retain    = 0;
+        cloudPublishPacket.publishHeaderFlags.qos       = 0;
+        cloudPublishPacket.publishHeaderFlags.retain    = 1;
         // Variable header
         cloudPublishPacket.topic = (uint8_t*)mqtt_dps_topic_buf;
 
@@ -171,6 +171,8 @@ extern publishReceptionHandler_t imqtt_publishReceiveCallBackTable[MAX_NUM_TOPIC
 void MQTT_CLIENT_iotprovisioning_publish(uint8_t* data, uint16_t len)
 {
     debug_printGood("  DPS: %s", __FUNCTION__);
+
+    return;
 }
 
 void MQTT_CLIENT_iotprovisioning_receive(uint8_t* data, uint16_t len)
@@ -226,7 +228,7 @@ void MQTT_CLIENT_iotprovisioning_connect(char* deviceID)
         cloudConnectPacket.username                                            = (uint8_t*)mqtt_username_buf;
         cloudConnectPacket.usernameLength                                      = (uint16_t)mqtt_username_buf_len;
 
-        debug_printGood("  DPS: ConnectPacket username(%d): %s", mqtt_username_buf_len, mqtt_username_buf);
+        debug_printTrace("  DPS: ConnectPacket username(%d): %s", mqtt_username_buf_len, mqtt_username_buf);
 
         if (MQTT_CreateConnectPacket(&cloudConnectPacket))
         {
@@ -279,8 +281,9 @@ void MQTT_CLIENT_iotprovisioning_connected()
     {
         mqttPublishPacket cloudPublishPacket = {0};
         // Fixed header
-        cloudPublishPacket.publishHeaderFlags.qos    = 0;
-        cloudPublishPacket.publishHeaderFlags.retain = 0;
+        cloudPublishPacket.publishHeaderFlags.duplicate = 0;
+        cloudPublishPacket.publishHeaderFlags.qos       = 0;
+        cloudPublishPacket.publishHeaderFlags.retain    = 0;
         // Variable header
         cloudPublishPacket.topic = (uint8_t*)mqtt_dps_topic_buf;
 

@@ -795,7 +795,7 @@ void BSD_SocketHandler(int8_t sock, uint8_t msgType, void* pMsg)
     switch (msgType)
     {
         case SOCKET_MSG_CONNECT:
-            debug_print("  BSD: SOCKET_MSG_CONNECT");
+            debug_printTrace("  BSD: SOCKET_MSG_CONNECT");
             if (pMsg)
             {
                 tstrSocketConnectMsg* pstrConnect = (tstrSocketConnectMsg*)pMsg;
@@ -830,7 +830,7 @@ void BSD_SocketHandler(int8_t sock, uint8_t msgType, void* pMsg)
                 }
                 else
                 {
-                    debug_printError("  BSD: SOCKET (%d) CLOSED for error %d", sock, pstrRecv->s16BufferSize);
+                    debug_printError("  BSD: SOCKET_MSG_RECV (%d) CLOSED for error %d", sock, pstrRecv->s16BufferSize);
                     BSD_close(sock);
                 }
             }
@@ -847,7 +847,7 @@ void BSD_SocketHandler(int8_t sock, uint8_t msgType, void* pMsg)
                 }
                 else
                 {
-                    debug_printError("  BSD: SOCKET (%d) CLOSED for error %d", sock, pstrRecv->s16BufferSize);
+                    debug_printError("  BSD: SOCKET_MSG_RECVFROM (%d) CLOSED for error %d", sock, pstrRecv->s16BufferSize);
                     BSD_close(sock);
                 }
             }

@@ -55,22 +55,22 @@ static bool cloudInitialized = false;
 static bool waitingForMQTT   = false;
 
 pf_MQTT_CLIENT* pf_mqtt_client;
-char* mqtt_host;
-uint32_t mqttHostIP;
-uint32_t dnsRetryDelay = 0;
-char mqttSubscribeTopic[TOPIC_SIZE];
+char*           mqtt_host;
+uint32_t        mqttHostIP;
+uint32_t        dnsRetryDelay = 0;
+char            mqttSubscribeTopic[TOPIC_SIZE];
 
-static int8_t connectMQTTSocket(void);
-static void connectMQTT();
+static int8_t  connectMQTTSocket(void);
+static void    connectMQTT();
 static uint8_t reInit(void);
 
 bool isResetting         = false;
 bool cloudResetTimerFlag = false;
 bool sendSubscribe       = true;
-#define CLOUD_TASK_INTERVAL 500L
+#define CLOUD_TASK_INTERVAL      500L
 #define CLOUD_MQTT_TIMEOUT_COUNT 10000L   // 10 seconds max allowed to establish a connection
-#define MQTT_CONN_AGE_TIMEOUT 3600L       // 3600 seconds = 60minutes
-#define CLOUD_RESET_TIMEOUT 2500L         // 2 seconds
+#define MQTT_CONN_AGE_TIMEOUT    3600L    // 3600 seconds = 60minutes
+#define CLOUD_RESET_TIMEOUT      2500L    // 2 seconds
 
 SYS_TIME_HANDLE cloudResetTaskHandle  = SYS_TIME_HANDLE_INVALID;
 SYS_TIME_HANDLE mqttTimeoutTaskHandle = SYS_TIME_HANDLE_INVALID;
@@ -101,16 +101,14 @@ void NETWORK_wifiSslCallback(uint8_t u8MsgType, void* pvMsg)
 {
     switch (u8MsgType)
     {
-        case M2M_SSL_REQ_ECC:
-        {
+        case M2M_SSL_REQ_ECC: {
             tstrEccReqInfo* ecc_request = (tstrEccReqInfo*)pvMsg;
             CRYPTO_CLIENT_processEccRequest(ecc_request);
 
             break;
         }
 
-        case M2M_SSL_RESP_SET_CS_LIST:
-        {
+        case M2M_SSL_RESP_SET_CS_LIST: {
             tstrSslSetActiveCsList* pstrCsList = (tstrSslSetActiveCsList*)pvMsg;
             debug_printInfo("CLOUD: ActiveCS bitmap:%04x", pstrCsList->u32CsBMP);
 
@@ -166,7 +164,7 @@ void CLOUD_init_host(char* host, char* attDeviceID, pf_MQTT_CLIENT* pf_table)
 
 static void connectMQTT()
 {
-    time_t currentTime;   // = time(NULL);
+    time_t    currentTime;   // = time(NULL);
     struct tm sys_time;
 
     RTC_RTCCTimeGet(&sys_time);
@@ -204,7 +202,7 @@ void CLOUD_disconnect(void)
 
 // Todo: This declaration supports the hack below
 packetReceptionHandler_t* getSocketInfo(uint8_t sock);
-static int8_t connectMQTTSocket(void)
+static int8_t             connectMQTTSocket(void)
 {
     int8_t ret = false;
 
@@ -226,7 +224,7 @@ static int8_t connectMQTTSocket(void)
         addr.sin_port        = BSD_htons(8883);
         addr.sin_addr.s_addr = mqttHostIP;
 
-        mqttContext* context      = MQTT_GetClientConnectionInfo();
+        mqttContext*  context     = MQTT_GetClientConnectionInfo();
         socketState_t socketState = BSD_GetSocketState(*context->tcpClientSocket);
 
         // Todo: Check - Are we supposed to call close on the socket here to ensure we do not leak ?
@@ -247,13 +245,14 @@ static int8_t connectMQTTSocket(void)
         socketState = BSD_GetSocketState(*context->tcpClientSocket);
         if (socketState == SOCKET_CLOSED)
         {
-            debug_printGood("CLOUD: Configuring SSL SNI to connect to %s", mqtt_host);
+            debug_printGood("CLOUD: Configuring SSL SNI to connect to %s (%lu.%lu.%lu.%lu)", mqtt_host, (0x0FF & (mqttHostIP)), (0x0FF & (mqttHostIP >> 8)), (0x0FF & (mqttHostIP >> 16)), (0x0FF & (mqttHostIP >> 24)));
             ret = BSD_setsockopt(*context->tcpClientSocket, SOL_SSL_SOCKET, SO_SSL_SNI, mqtt_host, strlen(mqtt_host));
 
             if (ret == BSD_SUCCESS)
             {
                 int optVal = 1;
-                ret        = BSD_setsockopt(*context->tcpClientSocket, SOL_SSL_SOCKET, SO_SSL_ENABLE_SNI_VALIDATION, &optVal, sizeof(optVal));
+
+                ret = BSD_setsockopt(*context->tcpClientSocket, SOL_SSL_SOCKET, SO_SSL_ENABLE_SNI_VALIDATION, &optVal, sizeof(optVal));
             }
 
             if (ret == BSD_SUCCESS)
@@ -274,7 +273,7 @@ static int8_t connectMQTTSocket(void)
 
 void CLOUD_task(void)
 {
-    mqttContext* mqttConnnectionInfo = MQTT_GetClientConnectionInfo();
+    mqttContext*  mqttConnnectionInfo = MQTT_GetClientConnectionInfo();
     socketState_t socketState;
 
     if (!cloudInitialized)
@@ -318,8 +317,8 @@ void CLOUD_task(void)
         static int32_t lastAge = -1;
         socketState            = BSD_GetSocketState(*mqttConnnectionInfo->tcpClientSocket);
 
-        int32_t thisAge = MQTT_getConnectionAge();
-        time_t theTime;   // = time(NULL);
+        int32_t   thisAge = MQTT_getConnectionAge();
+        time_t    theTime;   // = time(NULL);
         struct tm sys_time;
         RTC_RTCCTimeGet(&sys_time);
         theTime = mktime(&sys_time);

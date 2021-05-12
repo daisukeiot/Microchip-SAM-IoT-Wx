@@ -85,11 +85,6 @@ void debug_printer(debug_severity_t debug_severity, debug_errorLevel_t error_lev
             if (error_level > LEVEL_ERROR)
                 error_level = LEVEL_ERROR;
 
-            if (error_level == LEVEL_WARN)
-            {
-                len = 0;
-            }
-
             if (OSAL_RESULT_TRUE == OSAL_MUTEX_Lock(&consoleMutex, OSAL_WAIT_FOREVER))
             {
                 sprintf(tmpFormat, "%s %s %s %s\r\n" CSI_RESET, debug_message_prefix, severity_strings[debug_severity], level_strings[error_level], format);

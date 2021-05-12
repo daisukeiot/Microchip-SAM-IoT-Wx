@@ -47,6 +47,7 @@ pf_MQTT_CLIENT pf_mqtt_iothub_client = {
     MQTT_CLIENT_iothub_connect,
     MQTT_CLIENT_iothub_subscribe,
     MQTT_CLIENT_iothub_connected,
+    NULL
 };
 
 extern const az_span device_model_id_span;
@@ -78,7 +79,7 @@ void MQTT_CLIENT_iothub_publish(uint8_t* data, uint16_t len)
 {
     az_result result;
 
-    debug_printGood("  HUB: Publishing to '%s'", hub_hostname);
+    debug_printTrace("  HUB: Publishing to '%s'", hub_hostname);
 
     result = az_iot_pnp_client_telemetry_get_publish_topic(
         &pnp_client,
@@ -97,7 +98,7 @@ void MQTT_CLIENT_iothub_publish(uint8_t* data, uint16_t len)
     mqttPublishPacket cloudPublishPacket;
     // Fixed header
     cloudPublishPacket.publishHeaderFlags.duplicate = 0;
-    cloudPublishPacket.publishHeaderFlags.qos       = 1;
+    cloudPublishPacket.publishHeaderFlags.qos       = 0;
     cloudPublishPacket.publishHeaderFlags.retain    = 0;
     // Variable header
     cloudPublishPacket.topic = (uint8_t*)mqtt_telemetry_topic_buf;
@@ -110,6 +111,8 @@ void MQTT_CLIENT_iothub_publish(uint8_t* data, uint16_t len)
     {
         debug_printError("  HUB: MQTT_CLIENT_iothub_publish() failed");
     }
+
+    return;
 }
 
 void MQTT_CLIENT_iothub_receive(uint8_t* data, uint16_t len)
@@ -233,4 +236,6 @@ void MQTT_CLIENT_iothub_connected()
     {
         LED_SetGreen(LED_STATE_HOLD);
     }
+
+    pf_mqtt_iothub_client.MQTT_CLIENT_task_completed();
 }
