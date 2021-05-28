@@ -43,7 +43,7 @@ static uint8_t     mqttTxBuff[TX_BUFF_SIZE];
 static uint8_t     mqttRxBuff[RX_BUFF_SIZE];
 static int8_t      mqqtSocket = -1;
 
-void MQTT_ClientInitialise(void)
+void MQTT_ClientInitialize(void)
 {
     MQTT_initialiseState();
     memset(mqttTxBuff, 0, sizeof(TX_BUFF_SIZE));

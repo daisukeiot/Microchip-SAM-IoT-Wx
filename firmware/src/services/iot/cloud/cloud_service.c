@@ -65,8 +65,7 @@ static void    connectMQTT();
 static uint8_t reInit(void);
 
 // bool isResetting      = false;
-bool cloudInitPending = false;
-bool sendSubscribe    = true;
+bool sendSubscribe = true;
 #define CLOUD_TASK_INTERVAL      500L
 #define CLOUD_MQTT_TIMEOUT_COUNT 30000L   // 10 seconds max allowed to establish a connection
 #define MQTT_CONN_AGE_TIMEOUT    3600L    // 3600 seconds = 60minutes
@@ -161,7 +160,7 @@ void cloudResetTaskcb(uintptr_t context)
 //
 void CLOUD_reset(void)
 {
-    debug_printInfo("CLOUD: Cloud Reset");
+    debug_printInfo("CLOUD: Resetting cloud connection");
     cloudInitialized = false;
     CLOUD_disconnect();
 }
@@ -194,8 +193,10 @@ void mqttTimeoutTask(void)
 void wifiTimeoutTask(void)
 {
     // To Do : We should cancel timer by adding callback.
-    if (shared_networking_params.haveAPConnection == 0 && shared_networking_params.haveIpAddress == 0)
+    if ((shared_networking_params.haveAPConnection == 0 && shared_networking_params.haveIpAddress == 0) ||
+        shared_networking_params.haveERROR == 1)
     {
+        LED_SetWiFi(LED_INDICATOR_ERROR);
         debug_printWarn("CLOUD: WiFi Connection Timeout");
         CLOUD_reset();
     }
@@ -374,13 +375,12 @@ void CLOUD_task(void)
         {
             if (!cloudInitialized)
             {
-                if (cloudInitPending != true)
+                if (shared_networking_params.cloudInitPending != 1)
                 {
-                    cloudInitPending = true;
+                    shared_networking_params.cloudInitPending = 1;
                     // Start initialization
-                    debug_printInfo("CLOUD: Reset timer is created.");
-                    cloudResetTaskHandle = SYS_TIME_CallbackRegisterMS(cloudResetTaskcb, 0, 100, SYS_TIME_SINGLE);
-                    //                cloudResetTaskHandle = SYS_TIME_CallbackRegisterMS(cloudResetTaskcb, 0, CLOUD_RESET_TIMEOUT, SYS_TIME_SINGLE);
+                    debug_printInfo("CLOUD: Cloud Reset timer start with %d ms", CLOUD_RESET_TIMEOUT);
+                    cloudResetTaskHandle = SYS_TIME_CallbackRegisterMS(cloudResetTaskcb, 0, CLOUD_RESET_TIMEOUT, SYS_TIME_SINGLE);
                 }
             }
             else if (shared_networking_params.haveAPConnection == 0)
@@ -547,23 +547,26 @@ void dnsHandler(uint8_t* domainName, uint32_t serverIP)
 
 static uint8_t reInit(void)
 {
-    debug_printInfo("CLOUD: reInit");
+    debug_printInfo("CLOUD: reInit()");
 
     shared_networking_params.allBits = 0;
     waitingForMQTT                   = false;
     uint8_t wifi_creds;
 
     // Clear LEDs
-    LED_SetBlue(LED_STATE_OFF);
+    LED_SetWiFi(LED_INDICATOR_OFF);
     LED_SetGreen(LED_STATE_OFF);
+    LED_SetRed(LED_STATE_OFF);
+    LED_SetYellow(LED_STATE_OFF);
 
     socketDeinit();
     socketInit();
 
     registerSocketCallback(BSD_SocketHandler, dnsHandler);
 
-    MQTT_ClientInitialise();
+    MQTT_ClientInitialize();
 
+    // Set callback for MQTT Message receive
     memset(&cloud_packetReceiveCallBackTable, 0, sizeof(cloud_packetReceiveCallBackTable));
     cloud_packetReceiveCallBackTable[0].socket       = MQTT_GetClientConnectionInfo()->tcpClientSocket;
     cloud_packetReceiveCallBackTable[0].recvCallBack = pf_mqtt_client->MQTT_CLIENT_receive;
@@ -573,7 +576,7 @@ static uint8_t reInit(void)
     if ((strcmp(ssid, "") != 0) && (strcmp(authType, "") != 0))
     {
         wifi_creds = NEW_CREDENTIALS;
-        debug_printInfo(" WIFI: Connecting to AP with new credentials : %s %s", ssid, authType);
+        debug_printInfo(" WIFI: Connecting to AP with new credentials : %s", ssid);
     }
     //This works provided the board had connected to the AP successfully
     else
@@ -582,16 +585,17 @@ static uint8_t reInit(void)
         debug_printInfo(" WIFI: Connecting to AP with the last used credentials");
     }
 
-    LED_SetBlue(LED_STATE_BLINK_FAST);
+    // Blink Blue LED to indicate WiFi connection is pending
+    LED_SetWiFi(LED_INDICATOR_PENDING);
+
     if (!wifi_connectToAp(wifi_creds))
     {
-        LED_SetBlue(LED_STATE_OFF);
-        LED_SetRed(LED_STATE_HOLD);
+        LED_SetWiFi(LED_INDICATOR_ERROR);
         debug_printError(" WIFI: Failed to connect to AP");
         return false;
     }
 
-    debug_printInfo("CLOUD: Wifi Connect timer is started");
+    debug_printInfo("CLOUD: WiFi Connect timer start with %d ms", WIFI_CONNECT_TIMEOUT);
     wifiTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(wifiTimeoutTaskcb, 0, WIFI_CONNECT_TIMEOUT, SYS_TIME_SINGLE);
 
     // SYS_TIME_TimerStop(cloudResetTaskHandle);
@@ -600,7 +604,7 @@ static uint8_t reInit(void)
     // mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
     // waitingForMQTT        = true;
 
-    cloudInitPending = false;
+    shared_networking_params.cloudInitPending = 0;
 
     return true;
 }

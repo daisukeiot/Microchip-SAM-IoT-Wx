@@ -34,6 +34,16 @@ static const az_span telemetry_name_light_span       = AZ_SPAN_LITERAL_FROM_STR(
 // Telemetry Interval writable property
 static const az_span property_telemetry_interval_span = AZ_SPAN_LITERAL_FROM_STR("telemetryInterval");
 
+// Button Press
+button_press_data_t button_press_data = {0};
+static char         button_event_buffer[128];
+
+static const az_span event_name_button_event_span = AZ_SPAN_LITERAL_FROM_STR("button_event");
+static const az_span event_name_button_name_span  = AZ_SPAN_LITERAL_FROM_STR("button_name");
+static const az_span event_name_button_sw0_span   = AZ_SPAN_LITERAL_FROM_STR("SW0");
+static const az_span event_name_button_sw1_span   = AZ_SPAN_LITERAL_FROM_STR("SW1");
+static const az_span event_name_press_count_span  = AZ_SPAN_LITERAL_FROM_STR("press_count");
+
 // LED Properties
 static const az_span led_blue_property_name_span   = AZ_SPAN_LITERAL_FROM_STR("led_b");
 static const az_span led_green_property_name_span  = AZ_SPAN_LITERAL_FROM_STR("led_g");
@@ -177,6 +187,86 @@ static az_result build_error_response_payload(
 }
 
 /**********************************************
+* Append JSON key-value pairs for button name and button press count
+* e.g.
+* {
+*   "button_event" :
+*   {
+*     "button_name" : "SW0",
+*     "press_count" : 1
+*   }
+* }
+**********************************************/
+static az_result append_button_press_telemetry(
+    az_json_writer* jw,
+    az_span         button_name_span,
+    int32_t         press_count)
+{
+    RETURN_ERR_IF_FAILED(az_json_writer_append_property_name(jw, event_name_button_event_span));
+    RETURN_ERR_IF_FAILED(az_json_writer_append_begin_object(jw));
+    RETURN_ERR_IF_FAILED(append_jason_property_string(jw, event_name_button_name_span, button_name_span));
+    RETURN_ERR_IF_FAILED(append_json_property_int32(jw, event_name_press_count_span, press_count));
+    RETURN_ERR_IF_FAILED(az_json_writer_append_end_object(jw));
+    return AZ_OK;
+}
+
+/**********************************************
+* Check if button(s) was pressed.
+**********************************************/
+void check_button_status(void)
+{
+    az_span        button_event_payload_span = AZ_SPAN_FROM_BUFFER(button_event_buffer);
+    az_json_writer jw;
+    az_result      rc = AZ_OK;
+
+    // save flags in case user pressed buttons very fast, and for error case.
+    bool sw0_pressed = button_press_data.flag.sw0 == 1 ? true : false;
+    bool sw1_pressed = button_press_data.flag.sw1 == 1 ? true : false;
+
+    // clear the flags
+    button_press_data.flag.AsUSHORT = 0;
+
+    if (sw0_pressed != true && sw1_pressed != true)
+    {
+        return;
+    }
+
+    RETURN_IF_FAILED(start_json_object(&jw, button_event_payload_span));
+
+    if (sw0_pressed == true)
+    {
+        debug_printGood("AZURE: Button SW0 Count %lu", button_press_data.sw0_press_count);
+        RETURN_IF_FAILED(append_button_press_telemetry(&jw, event_name_button_sw0_span, button_press_data.sw0_press_count));
+    }
+
+    if (sw1_pressed == true)
+    {
+        debug_printGood("AZURE: Button SW1 Count %lu", button_press_data.sw1_press_count);
+        RETURN_IF_FAILED(append_button_press_telemetry(&jw, event_name_button_sw1_span, button_press_data.sw1_press_count));
+    }
+
+    RETURN_IF_FAILED(end_json_object(&jw));
+
+    button_event_payload_span = az_json_writer_get_bytes_used_in_destination(&jw);
+
+    rc = az_iot_pnp_client_telemetry_get_publish_topic(
+        &pnp_client,
+        AZ_SPAN_EMPTY,
+        NULL,
+        pnp_telemetry_topic_buffer,
+        sizeof(pnp_telemetry_topic_buffer),
+        NULL);
+
+    if (!az_result_failed(rc))
+    {
+        //#ifndef DISABLE_TELEMETRY
+        CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer, az_span_ptr(button_event_payload_span), az_span_size(button_event_payload_span), QOS_PNP_TELEMETRY);
+        //#endif
+    }
+    return;
+}
+
+/**********************************************
 * Read sensor data and send telemetry to cloud
 **********************************************/
 az_result send_telemetry_message(void)
@@ -201,9 +291,12 @@ az_result send_telemetry_message(void)
         sizeof(pnp_telemetry_topic_buffer),
         NULL);
 
+    if (!az_result_failed(rc))
+    {
 #ifndef DISABLE_TELEMETRY
-    CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer, az_span_ptr(telemetry_payload_span), az_span_size(telemetry_payload_span), QOS_PNP_TELEMETRY);
+        CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer, az_span_ptr(telemetry_payload_span), az_span_size(telemetry_payload_span), QOS_PNP_TELEMETRY);
 #endif
+    }
     return rc;
 }
 
@@ -235,7 +328,7 @@ void check_led_status(twin_properties_t* twin_properties)
         return;
     }
 
-    debug_printInfo("  MAIN: %s() led_change %x", __func__, led_status.change_flag.AsUSHORT);
+    debug_printInfo("AZURE: %s() led_change %x", __func__, led_status.change_flag.AsUSHORT);
 
     // if this is from Get Twin, update according to Desired Property
     b_force_sync = twin_properties_ptr->flag.isInitialGet == 1 ? true : false;
@@ -331,7 +424,6 @@ void update_leds(
         check_led_status(twin_properties);
     }
 }
-
 
 /**********************************************
 * Send the response of the command invocation
@@ -453,7 +545,7 @@ az_result process_direct_method_command(
                 // if response is empty, payload was not in the right format.
                 if (az_result_failed(rc = build_error_response_payload(command_response_span, command_err_payload_missing_span, &command_response_span)))
                 {
-                    debug_printError("  MAIN: Fail build error response. (0x%08x)", rc);
+                    debug_printError("AZURE: Fail build error response. (0x%08x)", rc);
                 }
             }
         }
@@ -465,10 +557,9 @@ az_result process_direct_method_command(
 
         if ((rc = send_command_response(command_request, response_status, command_err_not_supported_span)) != 0)
         {
-            debug_printError("  MAIN: Unable to send %d response, status %d", response_status, rc);
+            debug_printError("AZURE: Unable to send %d response, status %d", response_status, rc);
         }
     }
-
 
     return rc;
 }

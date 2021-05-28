@@ -120,8 +120,6 @@ bool wifi_connectToAp(uint8_t passed_wifi_creds)
 {
     int8_t e = M2M_SUCCESS;
 
-    LED_SetBlue(LED_STATE_BLINK_FAST);
-
     if (passed_wifi_creds == NEW_CREDENTIALS)
     {
         e = m2m_wifi_connect((char*)ssid, sizeof(ssid), atoi((char*)authType), (char*)pass, M2M_WIFI_CH_ALL);
@@ -223,7 +221,7 @@ void WiFi_ConStateCb(tenuM2mConnState status)
             //iot_connection_completed();
         }
 
-        LED_SetBlue(LED_STATE_HOLD);
+        LED_SetWiFi(LED_INDICATOR_SUCCESS);
         shared_networking_params.haveAPConnection = 1;
         debug_printGood(" WIFI: Connection Status: CONNECTED");
         CREDENTIALS_STORAGE_clearWifiCredentials();
@@ -231,7 +229,7 @@ void WiFi_ConStateCb(tenuM2mConnState status)
     else if (status == M2M_WIFI_DISCONNECTED)
     {
         checkBackTaskHandle = SYS_TIME_CallbackRegisterMS(checkBackTaskcb, 0, CLOUD_WIFI_TASK_INTERVAL, SYS_TIME_SINGLE);
-        LED_SetBlue(LED_STATE_OFF);
+        LED_SetWiFi(LED_INDICATOR_OFF);
         shared_networking_params.amDisconnecting = 1;
     }
 

@@ -216,11 +216,15 @@ static void APP_WiFiConnectionStateChanged(uint8_t status)
 void APP_SW0_Handler(void)
 {
     LED_SetYellow(LED_STATE_HOLD);
+    button_press_data.sw0_press_count++;
+    button_press_data.flag.sw0 = 1;
 }
 
 void APP_SW1_Handler(void)
 {
     LED_SetYellow(LED_STATE_OFF);
+    button_press_data.sw1_press_count++;
+    button_press_data.flag.sw1 = 1;
 }
 
 // *****************************************************************************
@@ -322,7 +326,7 @@ static void APP_GetTimeNotifyCb(DRV_HANDLE handle, uint32_t timeUTC)
 static void APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress)
 {
 
-    LED_SetBlue(LED_STATE_HOLD);
+    LED_SetWiFi(LED_INDICATOR_SUCCESS);
 
     debug_printGood("  APP: DHCP IP Address %lu.%lu.%lu.%lu",
                     (0x0FF & (ipAddress)),
@@ -331,6 +335,7 @@ static void APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress)
                     (0x0FF & (ipAddress >> 24)));
 
     shared_networking_params.haveIpAddress = 1;
+    shared_networking_params.haveERROR = 0;
 }
 
 static void APP_ProvisionRespCb(DRV_HANDLE handle, WDRV_WINC_SSID* targetSSID,
@@ -503,6 +508,8 @@ static void APP_DataTask(void)
             // send telemetry
             APP_SendToCloud();
         }
+
+        check_button_status();
     }
     else
     {
@@ -518,24 +525,23 @@ static void APP_DataTask(void)
     //     LED_SetBlue(LED_STATE_OFF);
     // }
 
-    if (shared_networking_params.haveERROR)
-    {
-        LED_SetBlue(LED_STATE_OFF);
-        LED_SetRed(LED_STATE_HOLD);
-    }
-    else
-    {
-        LED_SetRed(LED_STATE_OFF);
-    }
+    // if (shared_networking_params.haveERROR)
+    // {
+    //     LED_SetWiFi(LED_INDICATOR_ERROR);
+    // }
+    // else
+    // {
+    //     LED_SetRed(LED_STATE_OFF);
+    // }
 
-    if (CLOUD_isConnected())
-    {
-        LED_SetGreen(LED_STATE_HOLD);
-    }
-    else
-    {
-        //LED_SetGreen(LED_STATE_OFF);
-    }
+    // if (CLOUD_isConnected())
+    // {
+    //     LED_SetGreen(LED_STATE_HOLD);
+    // }
+    // else
+    // {
+    //     //LED_SetGreen(LED_STATE_OFF);
+    // }
 }
 
 // *****************************************************************************

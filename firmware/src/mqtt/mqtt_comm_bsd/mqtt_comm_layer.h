@@ -45,7 +45,7 @@ typedef struct
 } mqttContext;
 
 
-void         MQTT_ClientInitialise(void);
+void         MQTT_ClientInitialize(void);
 mqttContext* MQTT_GetClientConnectionInfo();
 
 bool MQTT_Send(mqttContext* connectionPtr);
