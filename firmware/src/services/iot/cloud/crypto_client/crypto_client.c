@@ -26,11 +26,11 @@
 */
 #include <stdio.h>
 #include "config/cryptoauthlib_config.h"
-#include "tls/atcatls.h"
+#include "lib/tls/atcatls.h"
 #include "crypto_client.h"
 #include "../cloud_service.h"
 #include "debug_print.h"
-#include "cryptoauthlib.h"
+#include "lib/cryptoauthlib.h"
 
 #ifndef ATCA_NO_HEAP
 #error : This project uses CryptoAuthLibrary V2. Please add "ATCA_NO_HEAP" to toolchain symbols.

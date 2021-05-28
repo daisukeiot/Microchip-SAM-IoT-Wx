@@ -14,7 +14,7 @@
 #include "iot_config/IoT_Sensor_Node_config.h"
 #include "azutil.h"
 #include "debug_print.h"
-#include "basic/atca_basic.h"
+#include "lib/basic/atca_basic.h"
 #include "led.h"
 #include "azure/iot/az_iot_provisioning_client.h"
 #include "azure/core/az_span.h"

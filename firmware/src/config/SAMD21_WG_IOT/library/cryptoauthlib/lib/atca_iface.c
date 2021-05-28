@@ -29,7 +29,7 @@
 #include <stdlib.h>
 #include "atca_iface.h"
 #include "hal/atca_hal.h"
-#include "./config/cryptoauthlib_config.h"
+#include "../config/cryptoauthlib_config.h"
 
 /** \defgroup interface ATCAIface (atca_)
  *  \brief Abstract interface to all CryptoAuth device types.  This interface

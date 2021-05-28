@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 #include "atca_device.h"
-#include "./config/cryptoauthlib_config.h"
+#include "../config/cryptoauthlib_config.h"
 
 /** \defgroup device ATCADevice (atca_)
  * \brief ATCADevice object - composite of command and interface objects

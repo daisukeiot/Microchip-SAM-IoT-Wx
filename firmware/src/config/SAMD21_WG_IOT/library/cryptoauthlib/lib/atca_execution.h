@@ -39,7 +39,7 @@
 #include "atca_status.h"
 #include "atca_command.h"
 #include "atca_device.h"
-#include "./config/cryptoauthlib_config.h"
+#include "../config/cryptoauthlib_config.h"
 
 #ifdef __cplusplus
 extern "C" {

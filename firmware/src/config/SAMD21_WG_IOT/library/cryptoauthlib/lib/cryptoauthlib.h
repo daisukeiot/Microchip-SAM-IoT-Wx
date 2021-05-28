@@ -38,7 +38,7 @@
 #include "atca_cfgs.h"
 #include "basic/atca_basic.h"
 #include "basic/atca_helpers.h"
-#include "./config/cryptoauthlib_config.h"
+#include "../config/cryptoauthlib_config.h"
 
 #ifdef ATCA_PRINTF
 #include <stdio.h>

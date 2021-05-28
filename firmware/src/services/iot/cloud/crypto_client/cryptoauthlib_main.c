@@ -1,6 +1,6 @@
 #include "cryptoauthlib_main.h"
 #include "crypto_client.h"
-#include "cryptoauthlib.h"
+#include "lib/cryptoauthlib.h"
 #include "definitions.h"
 
 struct atca_command _gmyCommand;

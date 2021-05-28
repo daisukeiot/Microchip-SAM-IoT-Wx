@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include "../cryptoauthlib.h"
 #include "atca_helpers.h"
-#include "./config/cryptoauthlib_config.h"
+#include "../../config/cryptoauthlib_config.h"
 
 /* Ruleset:
     Index   -   Meaning
