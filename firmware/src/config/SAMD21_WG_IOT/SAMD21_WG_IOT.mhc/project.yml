@@ -243,7 +243,7 @@ files:
   physicalPath: library\cryptoauthlib
   security: NON_SECURE
   type: SOURCE
-  userChecksum: B87DEC376F3EDD9A6EC4522772C950AB
+  userChecksum: 8DA2E86780A0D2BD259927952BCF3935
 - generatedChecksum: 6BA62AD744FE91AD4780A50B9483B634
   logicalPath: config\SAMD21_WG_IOT\library\cryptoauthlib
   name: atca_iface.h
@@ -719,14 +719,14 @@ files:
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 4AFF189CD3697B93B8B90A21345B086C
+  userChecksum: 2A42735DCA35EB48B94183E97AD438EC
 - generatedChecksum: FA2D4A2BAD559B86667EC49FF6B9A282
   logicalPath: config\SAMD21_WG_IOT\driver\winc\drv\driver
   name: m2m_ota.c
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: FA2D4A2BAD559B86667EC49FF6B9A282
+  userChecksum: 351B4CAA891BE0C2877E7D2CC3FB2646
 - generatedChecksum: 37B237B499C5B75580EBBAB58DD25ECF
   logicalPath: config\SAMD21_WG_IOT\driver\winc\drv\driver
   name: m2m_periph.c
@@ -740,14 +740,14 @@ files:
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: E48FB1BA1F7B1988405764D53327C994
+  userChecksum: C343F150E92B54D3AF45F40660D82E0A
 - generatedChecksum: 92E203719F3E5B9B54A8B078FCDABD34
   logicalPath: config\SAMD21_WG_IOT\driver\winc\drv\driver
   name: m2m_wifi.c
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 92E203719F3E5B9B54A8B078FCDABD34
+  userChecksum: A00CA5E27F9C740B31E929334BFA4CC9
 - generatedChecksum: null
   logicalPath: ''
   name: main.c
@@ -768,7 +768,7 @@ files:
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: FBADF9E181FD70DB1DC83E331AD6FB5E
+  userChecksum: C3F0CA6219A5FE2ABEFBF0B0EB6F6929
 - generatedChecksum: A58EEC6C3CDF907C9C0E2DA6276E6A56
   logicalPath: config\SAMD21_WG_IOT\driver\winc\drv\driver
   name: nmbus.c
@@ -782,14 +782,14 @@ files:
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: C72C963FDB7511995436BE220DDFCDE8
+  userChecksum: FB3D5FB9842AAAB222B7D64957A5F6A1
 - generatedChecksum: 50132D71906F92F55379F4FA06402606
   logicalPath: config\SAMD21_WG_IOT\driver\winc\drv\driver
   name: nmspi.c
   physicalPath: driver\winc\drv\driver
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 50132D71906F92F55379F4FA06402606
+  userChecksum: 47523BBE448F484125FFD7AD1460D50E
 - generatedChecksum: 126FFC8B713B3C649701E9A9D909A989
   logicalPath: config\SAMD21_WG_IOT\peripheral\adc
   name: plib_adc.c
@@ -811,13 +811,13 @@ files:
   security: NON_SECURE
   type: SOURCE
   userChecksum: 4D4840F52EFC9053F1C963C6F81E8B51
-- generatedChecksum: 7E2653F42E4CBD3BCC90C75335CB307F
+- generatedChecksum: 9033D638ECAF00BA485C6211530B4B63
   logicalPath: config\SAMD21_WG_IOT\peripheral\eic
   name: plib_eic.c
   physicalPath: peripheral\eic
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 7E2653F42E4CBD3BCC90C75335CB307F
+  userChecksum: 9033D638ECAF00BA485C6211530B4B63
 - generatedChecksum: C99E6D9B9BA371EA749B7DC16BC2C209
   logicalPath: config\SAMD21_WG_IOT\peripheral\evsys
   name: plib_evsys.c
@@ -839,13 +839,13 @@ files:
   security: NON_SECURE
   type: SOURCE
   userChecksum: 12BB5180FB5A5EF3F5A1310030E4E6C5
-- generatedChecksum: 3E9888882F9003C1770BF7D21759EF04
+- generatedChecksum: 4ECA2FB269641CE3693EBB5F98F35DF3
   logicalPath: config\SAMD21_WG_IOT\peripheral\port
   name: plib_port.c
   physicalPath: peripheral\port
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 3E9888882F9003C1770BF7D21759EF04
+  userChecksum: 4ECA2FB269641CE3693EBB5F98F35DF3
 - generatedChecksum: 72C60A68612DB8526FAAB5677A14021B
   logicalPath: config\SAMD21_WG_IOT\peripheral\rtc
   name: plib_rtc_clock.c
@@ -915,14 +915,14 @@ files:
   physicalPath: driver\winc\drv\socket
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 4F545B6DDC75A7DFBEE9B0840585B182
+  userChecksum: 2D1DB50CA47124AC9948C890D680BDB7
 - generatedChecksum: BB1420A2B759E599DD72EDCB06A70325
   logicalPath: config\SAMD21_WG_IOT\driver\winc\drv\spi_flash
   name: spi_flash.c
   physicalPath: driver\winc\drv\spi_flash
   security: NON_SECURE
   type: SOURCE
-  userChecksum: BB1420A2B759E599DD72EDCB06A70325
+  userChecksum: 4C6650FEDBF119339A19559D62E2170D
 - generatedChecksum: 949BBD944EC8B81E639121B72E7C7510
   logicalPath: config\SAMD21_WG_IOT
   name: startup_xc32.c
@@ -936,7 +936,7 @@ files:
   physicalPath: system\command\src
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 6A54802433B130F9F753FF71CC0B773B
+  userChecksum: 5DC1582F53AE3F5D71C16336B5093206
 - generatedChecksum: 20C22A19D5DC74DEBFC4CCCA83B6F603
   logicalPath: config\SAMD21_WG_IOT\system\console
   name: sys_console.c
@@ -1006,7 +1006,7 @@ files:
   physicalPath: driver\winc
   security: NON_SECURE
   type: SOURCE
-  userChecksum: 4F38D53E5F023DBC0D405056BC43568F
+  userChecksum: E0256B6F1968D714EC79F55B275FD413
 - generatedChecksum: 77997C36D4C45AEC165A240204B431D0
   logicalPath: config\SAMD21_WG_IOT\driver\winc
   name: wdrv_winc_assoc.c
@@ -1244,7 +1244,7 @@ files:
   physicalPath: ''
   security: NON_SECURE
   type: HEADER
-  userChecksum: 678EDE6CCDEDCC6A970C98D40B1E39A3
+  userChecksum: FC6A6D453F77E6620B6B4A2FDDA4F9B9
 - generatedChecksum: CCBD23918BE14943EA128B0D552031C5
   logicalPath: packs\CMSIS\CMSIS\Core\Include
   name: core_cm0plus.h
@@ -1300,7 +1300,7 @@ files:
   physicalPath: driver
   security: NON_SECURE
   type: HEADER
-  userChecksum: CC7DFCC51CD25171A3E400E18969354F
+  userChecksum: 438959D823234E48E106D99CD5C5662E
 - generatedChecksum: 53AD078A2F507226A6BDA2DBFEA03430
   logicalPath: config\SAMD21_WG_IOT\driver\spi
   name: drv_spi.h
@@ -1384,7 +1384,7 @@ files:
   physicalPath: driver\winc\include\drv\driver
   security: NON_SECURE
   type: HEADER
-  userChecksum: F6F9844A4685C64C5E1E053F60388BF3
+  userChecksum: 39D63C5C9191B8CC2F348A02FC8B556B
 - generatedChecksum: 74790CAE1FA5A252F4473D363ADA8494
   logicalPath: config\SAMD21_WG_IOT\driver\winc\include\drv\driver
   name: m2m_periph.h
@@ -1419,7 +1419,7 @@ files:
   physicalPath: driver\winc\include\drv\driver
   security: NON_SECURE
   type: HEADER
-  userChecksum: C3EB4439406A6304FB9E015CB03596DA
+  userChecksum: 4230165FE7F753AE85CCB7272B2C8B90
 - generatedChecksum: B96ADDA2C111E73B26EBA5E7B4498912
   logicalPath: packs\CMSIS\CMSIS\Core\Include
   name: mpu_armv7.h
@@ -1553,13 +1553,13 @@ files:
   security: NON_SECURE
   type: HEADER
   userChecksum: 7E781B5EB55D5AF7787872E213EFB0C0
-- generatedChecksum: 0987922DE88C11DCC74AC3EC490B2C8D
+- generatedChecksum: DFB900E4E5851E46F2FBDD269E850155
   logicalPath: config\SAMD21_WG_IOT\peripheral\eic
   name: plib_eic.h
   physicalPath: peripheral\eic
   security: NON_SECURE
   type: HEADER
-  userChecksum: 0987922DE88C11DCC74AC3EC490B2C8D
+  userChecksum: DFB900E4E5851E46F2FBDD269E850155
 - generatedChecksum: CCAEF942C66AF995876DFD85CEFF611F
   logicalPath: config\SAMD21_WG_IOT\peripheral\evsys
   name: plib_evsys.h
@@ -1581,7 +1581,7 @@ files:
   security: NON_SECURE
   type: HEADER
   userChecksum: 71D16914F1E580B0AF77141622DCD865
-- generatedChecksum: 3028E6286A608166B1B08E7C07C3EEF1
+- generatedChecksum: C6B779353869F30E75EE1BF75740F7A7
   logicalPath: config\SAMD21_WG_IOT\peripheral\port
   name: plib_port.h
   physicalPath: peripheral\port
@@ -1699,7 +1699,7 @@ files:
   physicalPath: driver\winc\include\drv\socket
   security: NON_SECURE
   type: HEADER
-  userChecksum: 52D97E76A42608B36588376A0C57C5D1
+  userChecksum: 68173AEE1DEED999AD0324D4977F22FB
 - generatedChecksum: 50316907B1C917E20FAFBA79D1248176
   logicalPath: config\SAMD21_WG_IOT\driver\winc\include\drv\spi_flash
   name: spi_flash.h
@@ -1720,7 +1720,7 @@ files:
   physicalPath: system\command
   security: NON_SECURE
   type: HEADER
-  userChecksum: CD4D57FA548C4424287C649841CA2843
+  userChecksum: D44468D2FB903736C3889A8D7DAF6B04
 - generatedChecksum: 91CB36F6EC29DAA7C584282A875E5CBA
   logicalPath: config\SAMD21_WG_IOT\system\console
   name: sys_console.h
@@ -1930,7 +1930,7 @@ files:
   physicalPath: driver\winc\include
   security: NON_SECURE
   type: HEADER
-  userChecksum: 882B3D96C17040A22E26C464B499B830
+  userChecksum: 002508312B68F10DA072E11125924D2C
 - generatedChecksum: D1BE44448B9DB014BA1243C35D01B3B1
   logicalPath: config\SAMD21_WG_IOT\driver\winc\include\dev
   name: wdrv_winc_gpio.h

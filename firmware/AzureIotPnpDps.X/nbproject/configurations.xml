@@ -484,8 +484,6 @@
             <logicalFolder name="cryptoauthlib"
                            displayName="cryptoauthlib"
                            projectFiles="true">
-              <logicalFolder name="config" displayName="config" projectFiles="true">
-              </logicalFolder>
               <logicalFolder name="lib" displayName="lib" projectFiles="true">
                 <logicalFolder name="atcacert" displayName="atcacert" projectFiles="true">
                   <itemPath>../src/config/SAMD21_WG_IOT/library/cryptoauthlib/lib/atcacert/atcacert_client.c</itemPath>
@@ -685,8 +683,10 @@
                    projectFiles="false">
       <logicalFolder name="f1" displayName="SAMD21_WG_IOT.mhc" projectFiles="true">
         <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/adc.yml</itemPath>
+        <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/atecc608.yml</itemPath>
         <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/cmsis.yml</itemPath>
         <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/core.yml</itemPath>
+        <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/cryptoauthlib.yml</itemPath>
         <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/dfp.yml</itemPath>
         <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/drvWifiWinc.yml</itemPath>
         <itemPath>../src/config/SAMD21_WG_IOT/SAMD21_WG_IOT.mhc/drv_spi.yml</itemPath>
@@ -790,7 +790,7 @@
         <property key="enable-unroll-loops" value="false"/>
         <property key="exclude-floating-point" value="false"/>
         <property key="extra-include-directories"
-                  value="../src;..\src\config\SAMD21_WG_IOT\library\cryptoauthlib;../src/config/SAMD21_WG_IOT;../src/packs/ATSAMD21G18A_DFP;../src/packs/CMSIS/CMSIS/Core/Include;../src/packs/CMSIS/;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/spi_flash;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/socket;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/driver;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/common;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/bsp/include;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/bsp;../src/config/SAMD21_WG_IOT/driver/winc/include/dev;../src/config/SAMD21_WG_IOT/driver/winc/include/;../src/azure-sdk-for-c/sdk/inc"/>
+                  value="../src/config/SAMD21_WG_IOT/library/cryptoauthlib;../src/config/SAMD21_WG_IOT/library/cryptoauthlib/crypto;../src/config/SAMD21_WG_IOT/library/cryptoauthlib/pkcs11;../src;../src/config/SAMD21_WG_IOT;../src/packs/ATSAMD21G18A_DFP;../src/packs/CMSIS/CMSIS/Core/Include;../src/packs/CMSIS/;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/spi_flash;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/socket;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/driver;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/common;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/bsp/include;../src/config/SAMD21_WG_IOT/driver/winc/include/drv/bsp;../src/config/SAMD21_WG_IOT/driver/winc/include/dev;../src/config/SAMD21_WG_IOT/driver/winc/include/;..\src\config\SAMD21_WG_IOT\library\cryptoauthlib;../src/azure-sdk-for-c/sdk/inc"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="true"/>
@@ -886,7 +886,7 @@
         <property key="exceptions" value="true"/>
         <property key="exclude-floating-point" value="false"/>
         <property key="extra-include-directories"
-                  value="../src;../src/config/SAMD21_WG_IOT;../src/packs/ATSAMD21G18A_DFP;../src/packs/CMSIS/CMSIS/Core/Include;../src/packs/CMSIS/"/>
+                  value="../src;../src/config/SAMD21_WG_IOT;../src/packs/ATSAMD21G18A_DFP;../src/packs/CMSIS/CMSIS/Core/Include;../src/packs/CMSIS/;"/>
         <property key="generate-16-bit-code" value="false"/>
         <property key="generate-micro-compressed-code" value="false"/>
         <property key="isolate-each-function" value="true"/>
