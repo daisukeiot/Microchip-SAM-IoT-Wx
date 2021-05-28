@@ -30,7 +30,7 @@
 #include "atca_basic.h"
 #include "../atca_device.h"
 #include "../host/atca_host.h"
-#include "../../config/cryptoauthlib_config.h"
+#include "./config/cryptoauthlib_config.h"
 
 const char atca_version[] = {"20180817"};   // change for each release, yyyymmdd
 ATCADevice _gDevice       = NULL;

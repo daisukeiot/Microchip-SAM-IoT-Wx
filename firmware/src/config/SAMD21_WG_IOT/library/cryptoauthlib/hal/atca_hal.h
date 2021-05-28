@@ -35,7 +35,7 @@
 
 #include "../atca_status.h"
 #include "../atca_iface.h"
-#include "../../config/cryptoauthlib_config.h"
+#include "./config/cryptoauthlib_config.h"
 
 /** \defgroup hal_ Hardware abstraction layer (hal_)
  *

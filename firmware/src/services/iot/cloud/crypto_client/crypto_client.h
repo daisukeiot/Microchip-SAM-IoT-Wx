@@ -32,7 +32,7 @@
 #define NO_ERROR 0
 
 #include <stdint.h>
-#include "lib/cryptoauthlib.h"
+#include "cryptoauthlib.h"
 #include "../../../../config/SAMD21_WG_IOT/driver/winc/include/drv/driver/m2m_ssl.h"
 #include "../../../../config/SAMD21_WG_IOT/driver/winc/include/drv/driver/ecc_types.h"
 

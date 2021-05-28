@@ -35,7 +35,7 @@
 #include "../cryptoauthlib.h"
 #include "atca_hal.h"
 #include "hal_i2c.h"
-#include "../../config/cryptoauthlib_config.h"
+#include "./config/cryptoauthlib_config.h"
 
 /** \brief Standard HAL API for ATCA to initialize a physical interface
  * \param[in] cfg pointer to ATCAIfaceCfg object

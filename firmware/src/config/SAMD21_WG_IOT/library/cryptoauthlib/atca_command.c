@@ -36,7 +36,7 @@
 #include <string.h>
 #include "atca_command.h"
 #include "atca_devtypes.h"
-#include "../config/cryptoauthlib_config.h"
+#include "./config/cryptoauthlib_config.h"
 
 /** \brief ATCACommand CheckMAC method
  * \param[in] ca_cmd   instance

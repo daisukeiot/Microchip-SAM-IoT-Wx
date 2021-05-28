@@ -38,7 +38,7 @@
 #include "azutil.h"
 #include "debug_print.h"
 #include "led.h"
-#include "lib/basic/atca_basic.h"
+#include "basic/atca_basic.h"
 #include "azure/iot/az_iot_pnp_client.h"
 #include "azure/core/az_span.h"
 

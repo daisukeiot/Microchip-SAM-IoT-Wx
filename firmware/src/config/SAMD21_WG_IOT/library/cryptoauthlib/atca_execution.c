@@ -38,7 +38,7 @@
 #include "atca_execution.h"
 #include "atca_devtypes.h"
 #include "hal/atca_hal.h"
-#include "../config/cryptoauthlib_config.h"
+#include "./config/cryptoauthlib_config.h"
 
 #ifndef ATCA_POLLING_INIT_TIME_MSEC
 #define ATCA_POLLING_INIT_TIME_MSEC 1
