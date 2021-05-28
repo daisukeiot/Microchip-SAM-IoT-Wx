@@ -35,6 +35,7 @@
 #include "mqtt_packetPopulate.h"
 #include "mqtt_iothub_packetPopulate.h"
 #include "iot_config/IoT_Sensor_Node_config.h"
+#include "azutil.h"
 #include "debug_print.h"
 #include "led.h"
 #include "lib/basic/atca_basic.h"
@@ -47,21 +48,25 @@ pf_MQTT_CLIENT pf_mqtt_iothub_client = {
     MQTT_CLIENT_iothub_connect,
     MQTT_CLIENT_iothub_subscribe,
     MQTT_CLIENT_iothub_connected,
-    NULL
-};
+    NULL};
 
-extern const az_span device_model_id_span;
-extern void          APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload);
-extern void          APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
-extern void          APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload);
-static const az_span twin_request_id = AZ_SPAN_LITERAL_FROM_STR("initial_get");
+// Callback functions for IoT Hub SUBSCRIBE
+extern void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload);
+extern void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
+extern void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload);
 
-char              mqtt_telemetry_topic_buf[64];
-char              mqtt_get_topic_twin_buf[64];
-char              username_buf[200];
-uint8_t           device_id_buf[100];
-az_span           device_id;
-az_iot_pnp_client pnp_client;
+extern const az_span     device_model_id_span;
+extern az_iot_pnp_client pnp_client;
+extern az_span           device_id_span;
+extern char              mqtt_username_buffer[203 + 1];
+
+//static const az_span twin_request_id_span = AZ_SPAN_LITERAL_FROM_STR("initial_get");
+static char          mqtt_get_twin_topic_buffer[64];
+
+static uint16_t packet_identifier;
+static char     packet_identifier_buffer[16];
+
+OSAL_MUTEX_HANDLE_TYPE publish_mutex;
 
 /** \brief MQTT publish handler call back table.
  *
@@ -75,37 +80,57 @@ az_iot_pnp_client pnp_client;
  */
 publishReceptionHandler_t imqtt_publishReceiveCallBackTable[MAX_NUM_TOPICS_SUBSCRIBE];
 
-void MQTT_CLIENT_iothub_publish(uint8_t* data, uint16_t len)
+void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos)
 {
-    az_result result;
+    uint16_t packet_id = 0;
+    int      qos_value = 0;
 
-    debug_printTrace("  HUB: Publishing to '%s'", hub_hostname);
+    debug_printGood("  HUB: PUBLISH");
 
-    result = az_iot_pnp_client_telemetry_get_publish_topic(
-        &pnp_client,
-        AZ_SPAN_EMPTY,
-        NULL,
-        mqtt_telemetry_topic_buf,
-        sizeof(mqtt_telemetry_topic_buf),
-        NULL);
-
-    if (az_result_failed(result))
+    if (topic == NULL)
     {
-        debug_printError("az_iot_pnp_client_telemetry_get_publish_topic failed");
+        debug_printError("  HUB: %s() missing PUBLISH topic");
         return;
     }
+
+    if (qos == QOS_PNP_PROPERTY)
+    {
+        // called with Mutex held
+        packet_id = get_current_publish_packet_id();
+        qos_value = 1;
+    }
+    else if (qos != QOS_PNP_NONE)
+    {
+        qos_value = 1;
+        debug_printGood("AZURE: > PUBLISH Mutex - T");
+        if (OSAL_RESULT_TRUE != MUTEX_Lock(&publish_mutex, OSAL_WAIT_FOREVER))
+        {
+            debug_printError("  HUB: Failed to lock publish_mutex");
+            return;
+        }
+        debug_printGood("AZURE: >> PUBLISH Mutex Locked - T");
+        packet_id = ++packet_identifier;
+    }
+
+    debug_printGood("  HUB: PUBLISH with ID %d", get_current_publish_packet_id());
 
     mqttPublishPacket cloudPublishPacket;
     // Fixed header
     cloudPublishPacket.publishHeaderFlags.duplicate = 0;
-    cloudPublishPacket.publishHeaderFlags.qos       = 0;
+    cloudPublishPacket.publishHeaderFlags.qos       = qos_value;
     cloudPublishPacket.publishHeaderFlags.retain    = 0;
-    // Variable header
-    cloudPublishPacket.topic = (uint8_t*)mqtt_telemetry_topic_buf;
+
+    if (qos_value == 1)
+    {
+        cloudPublishPacket.packetIdentifierLSB = packet_id & 0xff;
+        cloudPublishPacket.packetIdentifierMSB = packet_id >> 8;
+    }
+
+    cloudPublishPacket.topic = topic;
 
     // Payload
-    cloudPublishPacket.payload       = data;
-    cloudPublishPacket.payloadLength = len;
+    cloudPublishPacket.payload       = payload;
+    cloudPublishPacket.payloadLength = payload_len;
 
     if (MQTT_CreatePublishPacket(&cloudPublishPacket) != true)
     {
@@ -117,56 +142,101 @@ void MQTT_CLIENT_iothub_publish(uint8_t* data, uint16_t len)
 
 void MQTT_CLIENT_iothub_receive(uint8_t* data, uint16_t len)
 {
+    mqttHeaderFlags* mqtt_data = (mqttHeaderFlags*)data;
+
+    if (mqtt_data->controlPacketType == PUBACK)
+    {
+        mqttPubackPacket* mqtt_puback = (mqttPubackPacket*)data;
+        uint16_t          identifier  = mqtt_puback->packetIdentifierLSB << 8 | mqtt_puback->packetIdentifierMSB;
+
+        debug_printGood("  HUB: Received PUBACK Current ID %d %d", get_current_publish_packet_id, identifier);
+    }
     MQTT_GetReceivedData(data, len);
 }
 
-void MQTT_CLIENT_iothub_connect(char* deviceID)
+void MQTT_CLIENT_iothub_puback_callback(mqttPubackPacket* data)
 {
-    debug_printGood("  HUB: Connecting to '%s'", hub_hostname);
-    const az_span iothub_hostname = az_span_create_from_str(hub_hostname);
-    const az_span deviceID_parm   = az_span_create_from_str(deviceID);
-    az_span       device_id       = AZ_SPAN_FROM_BUFFER(device_id_buf);
+    OSAL_MUTEX_Unlock(&publish_mutex);
+    debug_printGood("AZURE: << Mutex Unlocked");
+
+    debug_printGood("  HUB: %s() Current ID %d Packet %d", __FUNCTION__, get_current_publish_packet_id(), (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
+}
+
+void MQTT_CLIENT_iothub_connect(char* device_id)
+{
+    az_result     rc;
+    size_t        mqtt_connect_username_len;
+    const az_span hub_hostname_span    = az_span_create_from_str(hub_hostname);
+    const az_span device_id_span_local = az_span_create_from_str(device_id);
+    device_id_span                     = AZ_SPAN_FROM_BUFFER(device_id_buffer);
+
+    debug_printGood("  HUB: Sending MQTT CONNECT to '%s'", hub_hostname);
 
     LED_SetGreen(LED_STATE_BLINK_SLOW);
 
-    az_span_copy(device_id, deviceID_parm);
-    device_id = az_span_slice(device_id, 0, az_span_size(deviceID_parm));
-
-    az_result result = az_iot_pnp_client_init(&pnp_client, iothub_hostname, device_id, device_model_id_span, NULL);
-
-    if (az_result_failed(result))
+    if (OSAL_RESULT_TRUE != OSAL_MUTEX_Create(&publish_mutex))
     {
-        debug_printError("  HUB: az_iot_pnp_client_init failed");
+        debug_printError("  HUB: failed to create Publish Mutex");
+    }
+    else
+    {
+        debug_printGood("  HUB: Created Publish Mutex");
+    }
+
+#ifdef IOT_PLUG_AND_PLAY_MODEL_ID
+    az_span_copy(device_id_span, device_id_span_local);
+
+    device_id_span = az_span_slice(device_id_span, 0, az_span_size(device_id_span_local));
+#else
+    device_id_span = NULL;
+#endif
+
+    rc = az_iot_pnp_client_init(&pnp_client,
+                                hub_hostname_span,
+                                device_id_span,
+                                device_model_id_span,
+                                NULL);
+    if (az_result_failed(rc))
+    {
+        debug_printError("  HUB: az_iot_pnp_client_init() failed. rc = 0x%x", rc);
         return;
     }
 
-    size_t username_buf_len;
-    result = az_iot_pnp_client_get_user_name(&pnp_client, username_buf, sizeof(username_buf), &username_buf_len);
-    if (az_result_failed(result))
+    rc = az_iot_pnp_client_get_user_name(&pnp_client,
+                                         mqtt_username_buffer,
+                                         sizeof(mqtt_username_buffer),
+                                         &mqtt_connect_username_len);
+    if (az_result_failed(rc))
     {
-        debug_printError("  HUB: az_iot_pnp_client_get_user_name failed");
+        debug_printError("  HUB: az_iot_pnp_client_get_user_name() failed. rc = 0x%x", rc);
         return;
     }
 
     mqttConnectPacket cloudConnectPacket;
     memset(&cloudConnectPacket, 0, sizeof(mqttConnectPacket));
-    cloudConnectPacket.connectVariableHeader.connectFlagsByte.All = 0x20;   // AZ_CLIENT_DEFAULT_MQTT_CONNECT_CLEAN_SESSION
+    cloudConnectPacket.connectVariableHeader.connectFlagsByte.All = 0x20;
     cloudConnectPacket.connectVariableHeader.keepAliveTimer       = AZ_IOT_DEFAULT_MQTT_CONNECT_KEEPALIVE_SECONDS;
 
-    cloudConnectPacket.clientID       = az_span_ptr(device_id);
+    cloudConnectPacket.clientID       = az_span_ptr(device_id_span);
     cloudConnectPacket.password       = NULL;
     cloudConnectPacket.passwordLength = 0;
-    cloudConnectPacket.username       = (uint8_t*)username_buf;
-    cloudConnectPacket.usernameLength = (uint16_t)username_buf_len;
+    cloudConnectPacket.username       = (uint8_t*)mqtt_username_buffer;
+    cloudConnectPacket.usernameLength = (uint16_t)mqtt_connect_username_len;
 
-    MQTT_CreateConnectPacket(&cloudConnectPacket);
+    if ((MQTT_CreateConnectPacket(&cloudConnectPacket)) == false)
+    {
+        debug_printError("  HUB: Failed to create CONNECT packet to IoT Hub");
+        LED_SetRed(LED_STATE_BLINK_SLOW);
+        //LED_SetGreen(LED_STATE_OFF);
+    }
 }
 
 bool MQTT_CLIENT_iothub_subscribe()
 {
     mqttSubscribePacket cloudSubscribePacket;
+    bool                bRet = false;   // assume failure
 
-    debug_printGood("  HUB: Subscribing to '%s'", hub_hostname);
+    debug_printGood("  HUB: Sending MQTT SUBSCRIBE to '%s'", hub_hostname);
 
     // Variable header
     cloudSubscribePacket.packetIdentifierLSB = 1;
@@ -190,28 +260,32 @@ bool MQTT_CLIENT_iothub_subscribe()
     imqtt_publishReceiveCallBackTable[2].mqttHandlePublishDataCallBack = APP_ReceivedFromCloud_twin;
     MQTT_SetPublishReceptionHandlerTable(imqtt_publishReceiveCallBackTable);
 
-    bool ret = MQTT_CreateSubscribePacket(&cloudSubscribePacket);
-    if (ret == true)
+    if ((bRet = MQTT_CreateSubscribePacket(&cloudSubscribePacket)) == false)
     {
-        debug_printInfo("  HUB: SUBSCRIBE packet created");
+        debug_printError("  HUB: Failed to create SUBSCRIBE packet to IoT Hub");
+        LED_SetRed(LED_STATE_BLINK_SLOW);
+        LED_SetGreen(LED_STATE_OFF);
     }
 
-    return ret;
+    return bRet;
 }
 
 void MQTT_CLIENT_iothub_connected()
 {
     // get the current state of the device twin
     debug_printGood("  HUB: MQTT_CLIENT_iothub_connected()");
-    az_result result = az_iot_pnp_client_property_document_get_publish_topic(&pnp_client,
-                                                                             twin_request_id,
-                                                                             mqtt_get_topic_twin_buf,
-                                                                             sizeof(mqtt_get_topic_twin_buf),
-                                                                             NULL);
 
-    if (az_result_failed(result))
+    MQTT_Set_Puback_callback(MQTT_CLIENT_iothub_puback_callback);
+
+    az_result rc = az_iot_pnp_client_property_document_get_publish_topic(&pnp_client,
+                                                                         twin_request_id_span,
+                                                                         mqtt_get_twin_topic_buffer,
+                                                                         sizeof(mqtt_get_twin_topic_buffer),
+                                                                         NULL);
+
+    if (az_result_failed(rc))
     {
-        debug_printError("  HUB: az_iot_pnp_client_property_document_get_publish_topic failed");
+        debug_printError("  HUB: az_iot_pnp_client_property_document_get_publish_topic failed. rc = 0x%x", rc);
         return;
     }
 
@@ -221,7 +295,7 @@ void MQTT_CLIENT_iothub_connected()
     cloudPublishPacket.publishHeaderFlags.qos       = 0;
     cloudPublishPacket.publishHeaderFlags.retain    = 0;
     // Variable header
-    cloudPublishPacket.topic = (uint8_t*)mqtt_get_topic_twin_buf;
+    cloudPublishPacket.topic = (uint8_t*)mqtt_get_twin_topic_buffer;
 
     // Payload
     cloudPublishPacket.payload       = NULL;
@@ -230,12 +304,25 @@ void MQTT_CLIENT_iothub_connected()
     if (MQTT_CreatePublishPacket(&cloudPublishPacket) != true)
     {
         debug_printError("  HUB: PUBLISH failed");
-        LED_SetGreen(LED_STATE_OFF);
-    }
-    else
-    {
-        LED_SetGreen(LED_STATE_HOLD);
+        LED_SetRed(LED_STATE_BLINK_SLOW);
     }
 
     pf_mqtt_iothub_client.MQTT_CLIENT_task_completed();
+}
+
+az_span get_publish_packet_id(void)
+{
+    az_span remainder;
+    az_span out_span = az_span_create(
+        (uint8_t*)packet_identifier_buffer, sizeof(packet_identifier_buffer));
+
+    az_result rc = az_span_u32toa(out_span, packet_identifier++, &remainder);
+    EXIT_WITH_MESSAGE_IF_FAILED(rc, "AZURE:Failed to get request id");
+
+    return az_span_slice(out_span, 0, az_span_size(out_span) - az_span_size(remainder));
+}
+
+uint16_t get_current_publish_packet_id(void)
+{
+    return packet_identifier;
 }

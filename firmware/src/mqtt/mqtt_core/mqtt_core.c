@@ -449,6 +449,8 @@ void checkUnsubackTimeoutState(void);
 SYS_TIME_HANDLE checkUnsubackTimeoutStateHandle     = SYS_TIME_HANDLE_INVALID;
 volatile bool   checkUnsubackTimeoutStateTmrExpired = false;
 
+static MQTTPubAckCallbackPtr mqttPubackCallback = NULL;
+
 /**********************Local function definitions*(END)************************/
 
 /**********************Function implementations********************************/
@@ -534,9 +536,9 @@ bool MQTT_CreateConnectPacket(mqttConnectPacket* newConnectPacket)
 
     // Fixed header
     txConnectPacket.connectFixedHeaderFlags.controlPacketType = CONNECT;
-    txConnectPacket.connectFixedHeaderFlags.duplicate         = 0;
-    txConnectPacket.connectFixedHeaderFlags.qos               = 0;
-    txConnectPacket.connectFixedHeaderFlags.retain            = 0;
+    txConnectPacket.connectFixedHeaderFlags.duplicate         = newConnectPacket->connectFixedHeaderFlags.duplicate;
+    txConnectPacket.connectFixedHeaderFlags.qos               = newConnectPacket->connectFixedHeaderFlags.qos;
+    txConnectPacket.connectFixedHeaderFlags.retain            = newConnectPacket->connectFixedHeaderFlags.retain;
 
     // Variable header
     txConnectPacket.connectVariableHeader.protocolName[0] = 0x00;
@@ -593,33 +595,33 @@ bool MQTT_CreateConnectPacket(mqttConnectPacket* newConnectPacket)
     mqttState                      = CONNECTING;
 
 #if CFG_MQTT_DEBUG_MSG
-    debug_print(" MQTT: Connect Pckt content:");
-    debug_print(" MQTT: Connect Pckt Client ID: %s", (uint8_t*)txConnectPacket.clientID);
-    debug_print(" MQTT: Connect Pckt Client ID Len: %d", txConnectPacket.clientIDLength);
-    debug_print(" MQTT: Connect Pckt Password: %s", (uint8_t*)txConnectPacket.password);
-    debug_print(" MQTT: Connect Pckt Password Len: %d", txConnectPacket.passwordLength);
+    debug_printTrace(" MQTT: Connect Pckt content:");
+    debug_printTrace(" MQTT: Connect Pckt Client ID: %s", (uint8_t*)txConnectPacket.clientID);
+    debug_printTrace(" MQTT: Connect Pckt Client ID Len: %d", txConnectPacket.clientIDLength);
+    debug_printTrace(" MQTT: Connect Pckt Password: %s", (uint8_t*)txConnectPacket.password);
+    debug_printTrace(" MQTT: Connect Pckt Password Len: %d", txConnectPacket.passwordLength);
 
     int i;
     for (i = 0; i < 4; i++)
     {
-        debug_print(" MQTT: Connect Pckt Remaining Len[%d]: %d", i, txConnectPacket.remainingLength[i]);
+        debug_printTrace(" MQTT: Connect Pckt Remaining Len[%d]: %d", i, txConnectPacket.remainingLength[i]);
     }
 
 
-    debug_print(" MQTT: Connect Pckt Total Len: %d", txConnectPacket.totalLength);
-    debug_print(" MQTT: Connect Pckt Username: %s", (uint8_t*)txConnectPacket.username);
-    debug_print(" MQTT: Connect Pckt Username Len: %d", txConnectPacket.usernameLength);
-    debug_print(" MQTT: Connect Pckt Header Flag: %d", txConnectPacket.connectFixedHeaderFlags.All);
-    debug_print(" MQTT: Connect Pckt KeepAliveTimer: %d", txConnectPacket.connectVariableHeader.keepAliveTimer);
-    debug_print(" MQTT: Connect Pckt Protocol Lvl: %d", txConnectPacket.connectVariableHeader.protocolLevel);
+    debug_printTrace(" MQTT: Connect Pckt Total Len: %d", txConnectPacket.totalLength);
+    debug_printTrace(" MQTT: Connect Pckt Username: %s", (uint8_t*)txConnectPacket.username);
+    debug_printTrace(" MQTT: Connect Pckt Username Len: %d", txConnectPacket.usernameLength);
+    debug_printTrace(" MQTT: Connect Pckt Header Flag: %d", txConnectPacket.connectFixedHeaderFlags.All);
+    debug_printTrace(" MQTT: Connect Pckt KeepAliveTimer: %d", txConnectPacket.connectVariableHeader.keepAliveTimer);
+    debug_printTrace(" MQTT: Connect Pckt Protocol Lvl: %d", txConnectPacket.connectVariableHeader.protocolLevel);
     for (i = 0; i < 2; i++)
     {
-        debug_print(" MQTT: Connect Pckt Protocol Name [%d]: %d", i, txConnectPacket.connectVariableHeader.protocolName[i]);
+        debug_printTrace(" MQTT: Connect Pckt Protocol Name [%d]: %d", i, txConnectPacket.connectVariableHeader.protocolName[i]);
     }
 
     for (i = 2; i < 6; i++)
     {
-        debug_print(" MQTT: Connect Pckt Protocol Name [%d]: %c", i, txConnectPacket.connectVariableHeader.protocolName[i]);
+        debug_printTrace(" MQTT: Connect Pckt Protocol Name [%d]: %c", i, txConnectPacket.connectVariableHeader.protocolName[i]);
     }
 #endif
     return true;
@@ -633,7 +635,9 @@ bool MQTT_CreatePublishPacket(mqttPublishPacket* newPublishPacket)
 
     memset(&txPublishPacket, 0, sizeof(txPublishPacket));
 
-    if (mqttState == CONNECTED)
+    assert(mqttRxFlags.newRxPubackPacket == 0);
+
+    if (mqttState == CONNECTED && mqttRxFlags.newRxPubackPacket == 0)
     {
         // Fixed header
         txPublishPacket.publishHeaderFlags.controlPacketType = PUBLISH;
@@ -662,7 +666,8 @@ bool MQTT_CreatePublishPacket(mqttPublishPacket* newPublishPacket)
         txPublishPacket.topicLength = htons(txPublishPacket.topicLength);
 
         mqttTxFlags.newTxPublishPacket = 1;
-        ret                            = true;
+
+        ret = true;
     }
     return ret;
 }
@@ -822,6 +827,8 @@ static bool mqttSendPublish(mqttContext* mqttConnectionPtr)
             if (txPublishPacket.publishHeaderFlags.qos == 1)
             {
                 mqttRxFlags.newRxPubackPacket = 1;
+
+                // To Do : Add timeout handler
             }
         }
     }
@@ -1086,6 +1093,8 @@ static mqttCurrentState mqttProcessPublish(mqttContext* mqttConnectionPtr)
     // Variable header
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, (uint8_t*)&rxPublishPacket.topicLength, sizeof(rxPublishPacket.topicLength));
     decodedLength -= sizeof(rxPublishPacket.topicLength);
+
+    // Topic
     rxPublishPacket.topic = (uint8_t*)mqttTopic;
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, rxPublishPacket.topic, ntohs(rxPublishPacket.topicLength));
     decodedLength -= ntohs(rxPublishPacket.topicLength);
@@ -1122,6 +1131,9 @@ static mqttCurrentState mqttProcessPublish(mqttContext* mqttConnectionPtr)
 static void mqttProcessPuback(mqttContext* mqttConnectionPtr)
 {
     mqttPubackPacket rxPubackPacket;
+
+    debug_printTrace(" MQTT: mqttProcessPuback()");
+
     memset(&rxPubackPacket, 0, sizeof(rxPubackPacket));
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, (uint8_t*)&rxPubackPacket.pubackFixedHeader, sizeof(rxPubackPacket.pubackFixedHeader));
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, &rxPubackPacket.remainingLength, sizeof(rxPubackPacket.remainingLength));
@@ -1129,6 +1141,10 @@ static void mqttProcessPuback(mqttContext* mqttConnectionPtr)
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, &rxPubackPacket.packetIdentifierLSB, sizeof(rxPubackPacket.packetIdentifierLSB));
     if (rxPubackPacket.packetIdentifierLSB == txPublishPacket.packetIdentifierLSB && rxPubackPacket.packetIdentifierMSB == txPublishPacket.packetIdentifierMSB)
     {
+        if (mqttPubackCallback)
+        {
+            mqttPubackCallback(&rxPubackPacket);
+        }
         mqttRxFlags.newRxPubackPacket = 0;
     }
 }
@@ -1268,11 +1284,11 @@ mqttCurrentState MQTT_ReceptionHandler(mqttContext* mqttConnectionPtr)
                         RTC_RTCCTimeGet(&sys_time);
                         connectTime = mktime(&sys_time);
                         //connectTime = time(NULL);
-                        debug_printGood(" MQTT: CONNACK CONNECTED at %s", ctime(&connectTime));
+                        debug_printGood(" MQTT: CONNACK Accepted at %s", ctime(&connectTime));
                     }
                     else
                     {
-                        debug_printError(" MQTT: CONNACK DISCONNECTED :(");
+                        debug_printError(" MQTT: CONNACK Refused :(");
                     }
                 }
                 else
@@ -1287,8 +1303,8 @@ mqttCurrentState MQTT_ReceptionHandler(mqttContext* mqttConnectionPtr)
             else
             {
                 mqttState = DISCONNECTED;
-                MQTT_Close(mqttConnectionPtr);
                 debug_printError(" MQTT: CONNACK TIMEOUT");
+                MQTT_Close(mqttConnectionPtr);
             }
             break;
 
@@ -1327,8 +1343,10 @@ mqttCurrentState MQTT_ReceptionHandler(mqttContext* mqttConnectionPtr)
                     mqttProcessPublish(mqttConnectionPtr);
                     break;
                 case PUBACK:
+                    // PUBACK received
                     mqttProcessPuback(mqttConnectionPtr);
                     break;
+
                 default:
                     break;
             }
@@ -1338,7 +1356,7 @@ mqttCurrentState MQTT_ReceptionHandler(mqttContext* mqttConnectionPtr)
             break;
 
         default:
-            debug_printError(" MQTT: mqttState=%d", mqttState);
+            debug_printWarn(" MQTT: Unexpect mqttState=%d", mqttState);
             break;
     }
 
@@ -1461,6 +1479,8 @@ static bool mqttSendDisconnect(mqttContext* mqttConnectionPtr)
     bool                 ret = false;
     mqttDisconnectPacket txDisconnectPacket;
 
+    debug_printWarn(" MQTT: Disconnect");
+
     memset(&txDisconnectPacket, 0, sizeof(txDisconnectPacket));
     MQTT_ExchangeBufferInit(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff);
     MQTT_ExchangeBufferInit(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff);
@@ -1500,6 +1520,7 @@ static mqttCurrentState mqttProcessConnack(mqttContext* mqttConnectionPtr)
     }
     else
     {
+        debug_printError(" MQTT: CONNACK refused %d", mqttConnackPacket.connackVariableHeader.connackReturnCode);
         return DISCONNECTED;
     }
 }
@@ -1508,31 +1529,41 @@ void MQTT_sched(void)
 {
     if (checkConnackTimeoutStateTmrExpired == true)
     {
+        debug_printWarn(" MQTT: CONNACK Timeout");
         checkConnackTimeoutStateTmrExpired = false;
         checkConnackTimeoutState();
     }
 
     if (checkPingreqTimeoutStateTmrExpired == true)
     {
+        debug_printWarn(" MQTT: PINGREQ Timeout");
         checkPingreqTimeoutStateTmrExpired = false;
         checkPingreqTimeoutState();
     }
 
     if (checkSubackTimeoutStateTmrExpired == true)
     {
+        debug_printWarn(" MQTT: SUBACK Timeout");
         checkSubackTimeoutStateTmrExpired = false;
         checkSubackTimeoutState();
     }
 
     if (checkUnsubackTimeoutStateTmrExpired == true)
     {
+        debug_printWarn(" MQTT: UNSUBACK Timeout");
         checkUnsubackTimeoutStateTmrExpired = false;
         checkUnsubackTimeoutState();
     }
 
     if (checkPingrespTimeoutStateTmrExpired == true)
     {
+        debug_printWarn(" MQTT: PINGRESP Timeout");
         checkPingrespTimeoutStateTmrExpired = false;
         checkPingrespTimeoutState();
     }
+}
+
+void MQTT_Set_Puback_callback(MQTTPubAckCallbackPtr callback)
+{
+    mqttPubackCallback = callback;
 }

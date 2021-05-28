@@ -13,6 +13,7 @@
 #include "azure/iot/az_iot_pnp_client.h"
 #include "services/iot/cloud/cloud_service.h"
 #include "led.h"
+#include "services/iot/cloud/mqtt_packetPopulation/mqtt_iothub_packetPopulate.h"
 
 #define LED_NO_CHANGE (-1)
 
@@ -69,7 +70,7 @@ typedef union
     struct
     {
         unsigned short version_found : 1;
-        unsigned short isGet : 1;
+        unsigned short isInitialGet : 1;
         unsigned short max_temp_updated : 1;
         unsigned short telemetry_interval_found : 1;
         unsigned short yellow_led_found : 1;
@@ -118,9 +119,18 @@ az_result send_telemetry_message(void);
 az_result send_reported_property(
     twin_properties_t* twin_properties);
 
-az_result parse_twin_property(
+az_result process_direct_method_command(
+    uint8_t*                                 payload,
+    az_iot_pnp_client_command_request* command_request);
+
+az_result process_device_twin_property(
     uint8_t*           topic,
     uint8_t*           payload,
     twin_properties_t* twin_properties);
 
+void update_leds(twin_properties_t* twin_properties);
+
+OSAL_RESULT MUTEX_Lock(
+    OSAL_MUTEX_HANDLE_TYPE* mutexID,
+    uint16_t                waitMS);
 #endif

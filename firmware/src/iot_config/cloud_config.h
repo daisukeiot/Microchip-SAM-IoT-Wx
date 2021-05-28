@@ -6,7 +6,7 @@
 // <s> mqtt port
 // <i> mqtt port value
 // <id> mqtt_port
-#define CFG_MQTT_PORT 8883
+#define CFG_MQTT_PORT AZ_IOT_DEFAULT_MQTT_CONNECT_PORT
 
 // <s> mqtt hub host
 // <i> mqtt hub host address

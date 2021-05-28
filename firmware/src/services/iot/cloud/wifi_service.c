@@ -154,6 +154,7 @@ bool wifi_disconnectFromAp(void)
             debug_printError("WIFI: Disconnect from AP error = %d", m2mDisconnectError);
             return false;
         }
+        //shared_networking_params.haveAPConnection = 0;
     }
     return true;
 }
@@ -183,7 +184,7 @@ void wifiHandlerTask(void)
 
 void checkBackTask(void)
 {
-    debug_printWarn(" WIFI: Connection Status: DISCONNECTED");
+    // debug_printWarn(" WIFI: Connection Status: %d", shared_networking_params.haveAPConnection);
     shared_networking_params.haveAPConnection = 0;
     shared_networking_params.haveERROR        = 1;
     shared_networking_params.amDisconnecting  = 0;
@@ -219,7 +220,7 @@ void WiFi_ConStateCb(tenuM2mConnState status)
             SYS_TIME_TimerStop(softApConnectTaskHandle);
             responseFromProvisionConnect = false;
             ntpTimeFetchTaskHandle       = SYS_TIME_CallbackRegisterMS(ntpTimeFetchTaskcb, 0, CLOUD_NTP_TASK_INTERVAL, SYS_TIME_PERIODIC);
-            APP_application_post_provisioning();
+            //iot_connection_completed();
         }
 
         LED_SetBlue(LED_STATE_HOLD);
@@ -230,7 +231,7 @@ void WiFi_ConStateCb(tenuM2mConnState status)
     else if (status == M2M_WIFI_DISCONNECTED)
     {
         checkBackTaskHandle = SYS_TIME_CallbackRegisterMS(checkBackTaskcb, 0, CLOUD_WIFI_TASK_INTERVAL, SYS_TIME_SINGLE);
-        LED_SetBlue(LED_STATE_BLINK_SLOW);
+        LED_SetBlue(LED_STATE_OFF);
         shared_networking_params.amDisconnecting = 1;
     }
 
@@ -261,16 +262,19 @@ void wifi_sched(void)
     }
     if (wifiHandlerTaskTmrExpired == true)
     {
+        debug_printWarn(" WIFI: Handler Timeout");
         wifiHandlerTaskTmrExpired = false;
         wifiHandlerTask();
     }
     if (checkBackTaskTmrExpired == true)
     {
+        debug_printTrace(" WIFI: Checkback Timeout");
         checkBackTaskTmrExpired = false;
         checkBackTask();
     }
     if (softApConnectTaskTmrExpired == true)
     {
+        debug_printWarn(" WIFI: SoftAP Timeout");
         softApConnectTaskTmrExpired = false;
         softApConnectTask();
     }
@@ -278,6 +282,6 @@ void wifi_sched(void)
 
 bool wifi_getIpAddressByHostName(uint8_t* host_name)
 {
-    debug_printTrace(" WIFI: wifi_getIpAddressByHostName %s", host_name);
+    debug_printGood(" WIFI: Getting IP for %s", host_name);
     return gethostbyname((char*)host_name) == M2M_SUCCESS;
 }

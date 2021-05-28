@@ -11,16 +11,15 @@
 #include <stdbool.h>
 #include "mqtt_packetPopulation/mqtt_packetPopulate.h"
 
+// this must be = to MAX_SUPPORTED_SOCKETS
 #define CLOUD_PACKET_RECV_TABLE_SIZE 2
-#define CLOUD_MAX_DEVICEID_LENGTH    30
-#define PASSWORD_SPACE               456
 
 void CLOUD_init_host(char* host, char* deviceId, pf_MQTT_CLIENT* pf_table);
 void CLOUD_reset(void);
 void CLOUD_subscribe(void);
 void CLOUD_disconnect(void);
 bool CLOUD_isConnected(void);
-void CLOUD_publishData(uint8_t* data, unsigned int len);
+void CLOUD_publishData(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos);
 void CLOUD_task(void);
 void CLOUD_sched(void);
 void dnsHandler(uint8_t* domainName, uint32_t serverIP);

@@ -200,12 +200,6 @@ void APP_Initialize(void);
 
 void APP_Tasks(void);
 
-void APP_DebugPrintf(const char* format, ...);
-
-char APP_HexToChar(uint8_t hex);
-
-void APP_DebugPrintBuffer(const uint8_t* pBuf, uint16_t bufLen);
-
 void set_deviceId(char* id);
 
 typedef union
@@ -213,21 +207,25 @@ typedef union
     uint8_t allBits;
     struct
     {
-        unsigned amDisconnecting : 1;
         unsigned haveAPConnection : 1;
+        unsigned haveIpAddress : 1;
+        unsigned haveHostIp : 1;
+        unsigned haveSocketConnection : 1;
+        unsigned haveMqttConnection : 1;
+        unsigned amDisconnecting : 1;
         unsigned haveERROR : 1;
-        unsigned : 5;
+        unsigned : 1;
     };
 } shared_networking_params_t;
 
 extern shared_networking_params_t shared_networking_params;
 
-void APP_application_post_provisioning(void);
-void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload);
-void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload);
-void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
+void    iot_connection_completed(void);
+void    APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload);
+void    APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload);
+void    APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload);
 int32_t APP_GetLightSensorValue(void);
-float APP_GetTempSensorValue(void);
+float   APP_GetTempSensorValue(void);
 
 #endif /* _APP_H */
 
@@ -236,7 +234,6 @@ float APP_GetTempSensorValue(void);
 }
 #endif
 //DOM-IGNORE-END
-
 
 
 /*******************************************************************************

@@ -54,32 +54,37 @@
 static bool cloudInitialized = false;
 static bool waitingForMQTT   = false;
 
-pf_MQTT_CLIENT* pf_mqtt_client;
-char*           mqtt_host;
-uint32_t        mqttHostIP;
-uint32_t        dnsRetryDelay = 0;
-char            mqttSubscribeTopic[TOPIC_SIZE];
+pf_MQTT_CLIENT*   pf_mqtt_client;
+char*             mqtt_host;
+volatile uint32_t mqttHostIP;
+volatile uint32_t dnsRetryCount = 0;
+char              mqttSubscribeTopic[TOPIC_SIZE];
 
 static int8_t  connectMQTTSocket(void);
 static void    connectMQTT();
 static uint8_t reInit(void);
 
-bool isResetting         = false;
-bool cloudResetTimerFlag = false;
-bool sendSubscribe       = true;
+// bool isResetting      = false;
+bool cloudInitPending = false;
+bool sendSubscribe    = true;
 #define CLOUD_TASK_INTERVAL      500L
-#define CLOUD_MQTT_TIMEOUT_COUNT 10000L   // 10 seconds max allowed to establish a connection
+#define CLOUD_MQTT_TIMEOUT_COUNT 30000L   // 10 seconds max allowed to establish a connection
 #define MQTT_CONN_AGE_TIMEOUT    3600L    // 3600 seconds = 60minutes
-#define CLOUD_RESET_TIMEOUT      2500L    // 2 seconds
+#define CLOUD_RESET_TIMEOUT      2000L    // 2 seconds
+#define DNS_RETRY_COUNT          10000L / CLOUD_TASK_INTERVAL
+#define WIFI_CONNECT_TIMEOUT     5000L   // 5 seconds
 
 SYS_TIME_HANDLE cloudResetTaskHandle  = SYS_TIME_HANDLE_INVALID;
 SYS_TIME_HANDLE mqttTimeoutTaskHandle = SYS_TIME_HANDLE_INVALID;
+SYS_TIME_HANDLE wifiTimeoutTaskHandle = SYS_TIME_HANDLE_INVALID;
 
 volatile bool mqttTimeoutTaskTmrExpired = false;
 volatile bool cloudResetTaskTmrExpired  = false;
+volatile bool wifiTimeoutTaskTmrExpired = false;
 
 void mqttTimeoutTask(void);
 void cloudResetTask(void);
+void wifiTimeoutTask(void);
 
 /** \brief MQTT publish handler call back table.
  *
@@ -120,14 +125,30 @@ void NETWORK_wifiSslCallback(uint8_t u8MsgType, void* pvMsg)
     }
 }
 
+socketState_t getSocketState()
+{
+    mqttContext*  context     = MQTT_GetClientConnectionInfo();
+    socketState_t socketState = BSD_GetSocketState(*context->tcpClientSocket);
+
+    return socketState;
+}
+
 void CLOUD_setdeviceId(char* id)
 {
     ateccsn = id;
 }
 
+//
+// Callbacks for timers
+//
 void mqttTimeoutTaskcb(uintptr_t context)
 {
     mqttTimeoutTaskTmrExpired = true;
+}
+
+void wifiTimeoutTaskcb(uintptr_t context)
+{
+    wifiTimeoutTaskTmrExpired = true;
 }
 
 void cloudResetTaskcb(uintptr_t context)
@@ -135,33 +156,144 @@ void cloudResetTaskcb(uintptr_t context)
     cloudResetTaskTmrExpired = true;
 }
 
+//
+// Start reset.
+//
 void CLOUD_reset(void)
 {
     debug_printInfo("CLOUD: Cloud Reset");
     cloudInitialized = false;
+    CLOUD_disconnect();
 }
 
-void mqttTimeoutTask(void)
-{
-    debug_printWarn("CLOUD: MQTT Connection Timeout");
-    CLOUD_reset();
-    waitingForMQTT = false;
-}
-
+//
+// Reset request timer fires to start initialization.
+//
 void cloudResetTask(void)
 {
     debug_printInfo("CLOUD: Reset task");
     cloudInitialized = reInit();
 }
 
-void CLOUD_init_host(char* host, char* attDeviceID, pf_MQTT_CLIENT* pf_table)
+//
+// MQTT connection request timed out.
+//
+void mqttTimeoutTask(void)
 {
-    mqtt_host      = host;
-    mqttHostIP     = 0;
-    pf_mqtt_client = pf_table;
-    CLOUD_setdeviceId(attDeviceID);
+    if (shared_networking_params.haveMqttConnection == 0)
+    {
+        debug_printWarn("CLOUD: MQTT Connection Timeout");
+        CLOUD_reset();
+        waitingForMQTT = false;
+    }
 }
 
+//
+// WiFi connection request timed out.
+//
+void wifiTimeoutTask(void)
+{
+    // To Do : We should cancel timer by adding callback.
+    if (shared_networking_params.haveAPConnection == 0 && shared_networking_params.haveIpAddress == 0)
+    {
+        debug_printWarn("CLOUD: WiFi Connection Timeout");
+        CLOUD_reset();
+    }
+}
+
+//
+// Called by App to set DPS/IoTHub MQTT.
+//
+void CLOUD_init_host(char* host, char* attDeviceID, pf_MQTT_CLIENT* pf_table)
+{
+    mqtt_host                           = host;
+    mqttHostIP                          = 0;
+    shared_networking_params.haveHostIp = 1;
+    pf_mqtt_client                      = pf_table;
+    CLOUD_setdeviceId(attDeviceID);
+    MQTT_Set_Puback_callback(NULL);
+    // memset(&cloud_packetReceiveCallBackTable, 0, sizeof(cloud_packetReceiveCallBackTable));
+    // cloud_packetReceiveCallBackTable[0].socket       = MQTT_GetClientConnectionInfo()->tcpClientSocket;
+    // cloud_packetReceiveCallBackTable[0].recvCallBack = pf_mqtt_client->MQTT_CLIENT_receive;
+}
+
+//
+// Initiates Socket Connection
+//
+static int8_t connectMQTTSocket(void)
+{
+    int8_t        ret = false;
+    int8_t        sslInit;
+    socketState_t socketState = getSocketState();
+
+    debug_printGood("CLOUD: Connecting Socket to '%s'", mqtt_host);
+
+    sslInit = m2m_ssl_init(NETWORK_wifiSslCallback);
+    if (sslInit != M2M_SUCCESS)
+    {
+        debug_printInfo("CLOUD: WiFi SSL Initialization failed");
+    }
+    else if (mqttHostIP == 0)
+    {
+        debug_printError("CLOUD: Need MQTT Host IP");
+    }
+    else if (socketState != SOCKET_CLOSED)
+    {
+        debug_printWarn("CLOUD: Socket State is not Closed.  State = %d", socketState);
+    }
+    else
+    {
+        struct bsd_sockaddr_in addr;
+
+        addr.sin_family      = PF_INET;
+        addr.sin_port        = BSD_htons(CFG_MQTT_PORT);
+        addr.sin_addr.s_addr = mqttHostIP;
+
+        mqttContext* context = MQTT_GetClientConnectionInfo();
+
+        debug_printGood("CLOUD: Configuring SSL SNI to connect to '%lu.%lu.%lu.%lu'",
+                        (0x0FF & (mqttHostIP)),
+                        (0x0FF & (mqttHostIP >> 8)),
+                        (0x0FF & (mqttHostIP >> 16)),
+                        (0x0FF & (mqttHostIP >> 24)));
+
+        ret = BSD_setsockopt(*context->tcpClientSocket,
+                             SOL_SSL_SOCKET,
+                             SO_SSL_SNI,
+                             mqtt_host,
+                             strlen(mqtt_host));
+
+        if (ret == BSD_SUCCESS)
+        {
+            int optVal = 1;
+
+            ret = BSD_setsockopt(*context->tcpClientSocket,
+                                 SOL_SSL_SOCKET,
+                                 SO_SSL_ENABLE_SNI_VALIDATION,
+                                 &optVal,
+                                 sizeof(optVal));
+        }
+
+        if (ret == BSD_SUCCESS)
+        {
+            ret = BSD_connect(*context->tcpClientSocket,
+                              (struct bsd_sockaddr*)&addr,
+                              sizeof(struct bsd_sockaddr_in));
+        }
+        else
+        {
+            debug_printError("CLOUD: Socket connect failed");
+            LED_SetRed(LED_STATE_BLINK_SLOW);
+            shared_networking_params.haveERROR = 1;
+            BSD_close(*context->tcpClientSocket);
+        }
+    }
+    return ret;
+}
+
+//
+// Initiates MQTT connection
+//
 static void connectMQTT()
 {
     time_t    currentTime;   // = time(NULL);
@@ -170,245 +302,212 @@ static void connectMQTT()
     RTC_RTCCTimeGet(&sys_time);
     currentTime = mktime(&sys_time);
 
-    debug_print("CLOUD: Current Time = %d", currentTime);
+    debug_printTrace("CLOUD: Sending MQTT CONNECT at %s", ctime(&currentTime));
 
     if (currentTime > 0)
     {
         pf_mqtt_client->MQTT_CLIENT_connect(ateccsn);
     }
-    debug_print("CLOUD: MQTT Connect");
+
+    waitingForMQTT = true;
+    debug_printGood("CLOUD: Starting MQTT Timeout");
+    mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
 
     // MQTT SUBSCRIBE packet will be sent after the MQTT connection is established.
     sendSubscribe = true;
 }
 
+//
+// Calls MQTT SUBSCRIBE
+//
 void CLOUD_subscribe(void)
 {
+    if (shared_networking_params.haveMqttConnection != 1)
+    {
+        debug_printError("CLOUD: MQTT not connected");
+        return;
+    }
+
+    debug_printTrace("CLOUD: Sending MQTT SUBSCRIBE");
     if (pf_mqtt_client->MQTT_CLIENT_subscribe() == true)
     {
         sendSubscribe = false;
     }
 }
 
-// This forces a disconnect, which forces a reconnect...
+//
+// Initiates MQTT DISCONNECT
+// This forces a reconnect
+//
 void CLOUD_disconnect(void)
 {
-    debug_printWarn("CLOUD: Disconnect");
     if (MQTT_GetConnectionState() == CONNECTED)
     {
+        debug_printWarn("CLOUD: Sending MQTT DISCONNECT");
         MQTT_Disconnect(MQTT_GetClientConnectionInfo());
     }
 }
 
 // Todo: This declaration supports the hack below
 packetReceptionHandler_t* getSocketInfo(uint8_t sock);
-static int8_t             connectMQTTSocket(void)
-{
-    int8_t ret = false;
 
-    debug_printGood("CLOUD: Connect MQTT Socket");
-    // Abstract the SSL section into a separate function
-    int8_t sslInit;
-
-    sslInit = m2m_ssl_init(NETWORK_wifiSslCallback);
-    if (sslInit != M2M_SUCCESS)
-    {
-        debug_printInfo("CLOUD: WiFi SSL Initialization failed");
-    }
-
-    if (mqttHostIP > 0)
-    {
-        struct bsd_sockaddr_in addr;
-
-        addr.sin_family      = PF_INET;
-        addr.sin_port        = BSD_htons(8883);
-        addr.sin_addr.s_addr = mqttHostIP;
-
-        mqttContext*  context     = MQTT_GetClientConnectionInfo();
-        socketState_t socketState = BSD_GetSocketState(*context->tcpClientSocket);
-
-        // Todo: Check - Are we supposed to call close on the socket here to ensure we do not leak ?
-        if (socketState == NOT_A_SOCKET)
-        {
-            *context->tcpClientSocket = BSD_socket(PF_INET, BSD_SOCK_STREAM, 1);
-
-            if (*context->tcpClientSocket >= 0)
-            {
-                packetReceptionHandler_t* sockInfo = getSocketInfo(*context->tcpClientSocket);
-                if (sockInfo != NULL)
-                {
-                    sockInfo->socketState = SOCKET_CLOSED;
-                }
-            }
-        }
-
-        socketState = BSD_GetSocketState(*context->tcpClientSocket);
-        if (socketState == SOCKET_CLOSED)
-        {
-            debug_printGood("CLOUD: Configuring SSL SNI to connect to %s (%lu.%lu.%lu.%lu)", mqtt_host, (0x0FF & (mqttHostIP)), (0x0FF & (mqttHostIP >> 8)), (0x0FF & (mqttHostIP >> 16)), (0x0FF & (mqttHostIP >> 24)));
-            ret = BSD_setsockopt(*context->tcpClientSocket, SOL_SSL_SOCKET, SO_SSL_SNI, mqtt_host, strlen(mqtt_host));
-
-            if (ret == BSD_SUCCESS)
-            {
-                int optVal = 1;
-
-                ret = BSD_setsockopt(*context->tcpClientSocket, SOL_SSL_SOCKET, SO_SSL_ENABLE_SNI_VALIDATION, &optVal, sizeof(optVal));
-            }
-
-            if (ret == BSD_SUCCESS)
-            {
-                debug_printGood("CLOUD: Connecting socket");
-                ret = BSD_connect(*context->tcpClientSocket, (struct bsd_sockaddr*)&addr, sizeof(struct bsd_sockaddr_in));
-            }
-            else
-            {
-                debug_printError("CLOUD: Socket connect failed.  BSD Status = %d", ret);
-                shared_networking_params.haveERROR = 1;
-                BSD_close(*context->tcpClientSocket);
-            }
-        }
-    }
-    return ret;
-}
 
 void CLOUD_task(void)
 {
     mqttContext*  mqttConnnectionInfo = MQTT_GetClientConnectionInfo();
-    socketState_t socketState;
+    socketState_t socketState         = BSD_GetSocketState(*mqttConnnectionInfo->tcpClientSocket);
 
-    if (!cloudInitialized)
+    //debug_printError("!!! %d", socketState);
+
+    // typedef enum
+    // {
+    // 	NOT_A_SOCKET = 0,           // This is not a socket
+    // 	SOCKET_CLOSED,              // Socket closed
+    // 	SOCKET_IN_PROGRESS,         // The TCP listen or initiate a connection
+    // 	SOCKET_CONNECTED,           // The TCP is in established state user can send/receive data
+    // 	SOCKET_CLOSING              // The user initiate the closing procedure for this socket
+    // } socketState_t;
+
+    switch (socketState)
     {
-        if (!isResetting)
+        case NOT_A_SOCKET:   // 0
         {
-            isResetting = true;
-            debug_printTrace("CLOUD: Reset timer is created.");
-            SYS_TIME_TimerStop(mqttTimeoutTaskHandle);
-            cloudResetTaskHandle = SYS_TIME_CallbackRegisterMS(cloudResetTaskcb, 0, CLOUD_RESET_TIMEOUT, SYS_TIME_SINGLE);
-            cloudResetTimerFlag  = true;
-        }
-    }
-    else
-    {
-        if (!waitingForMQTT)
-        {
-            if ((MQTT_GetConnectionState() != CONNECTED) && (cloudResetTimerFlag == false))
+            if (!cloudInitialized)
             {
-                // Start the MQTT connection timeout
-                debug_printInfo(" MQTT: Reset timer is created. Connection State %d", MQTT_GetConnectionState());
-                mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
-                waitingForMQTT        = true;
-            }
-        }
-    }
-
-    // If we have lost the AP we need to get the mqttState to disconnected
-    if (shared_networking_params.haveAPConnection == 0)
-    {
-        //Cleared on Access Point Connection
-        shared_networking_params.haveERROR = 1;
-
-        if (MQTT_GetConnectionState() == CONNECTED)
-        {
-            MQTT_initialiseState();
-        }
-    }
-    else
-    {
-        static int32_t lastAge = -1;
-        socketState            = BSD_GetSocketState(*mqttConnnectionInfo->tcpClientSocket);
-
-        int32_t   thisAge = MQTT_getConnectionAge();
-        time_t    theTime;   // = time(NULL);
-        struct tm sys_time;
-        RTC_RTCCTimeGet(&sys_time);
-        theTime = mktime(&sys_time);
-
-        if (theTime <= 0)
-        {
-            debug_printWarn("CLOUD: system time not ready");
-        }
-        else
-        {
-            if (MQTT_GetConnectionState() == CONNECTED)
-            {
-                if (lastAge != thisAge)
+                if (cloudInitPending != true)
                 {
-                    debug_printTrace("CLOUD: Uptime %lus SocketState (%d) MQTT State (%d)", thisAge, socketState, MQTT_GetConnectionState());
-                    lastAge = thisAge;
+                    cloudInitPending = true;
+                    // Start initialization
+                    debug_printInfo("CLOUD: Reset timer is created.");
+                    cloudResetTaskHandle = SYS_TIME_CallbackRegisterMS(cloudResetTaskcb, 0, 100, SYS_TIME_SINGLE);
+                    //                cloudResetTaskHandle = SYS_TIME_CallbackRegisterMS(cloudResetTaskcb, 0, CLOUD_RESET_TIMEOUT, SYS_TIME_SINGLE);
                 }
             }
-        }
-
-        switch (socketState)
-        {
-            case NOT_A_SOCKET:
-            case SOCKET_CLOSED:
-                if (dnsRetryDelay)
+            else if (shared_networking_params.haveAPConnection == 0)
+            {
+                // No network yet.
+                debug_printTrace("CLOUD: Waiting for WiFi AP Connection");
+            }
+            else if (shared_networking_params.haveIpAddress == 0)
+            {
+                // No IP yet.
+                debug_printInfo("CLOUD: Waiting for DHCP IP Address");
+            }
+            //else if (shared_networking_params.haveHostIp == 0)
+            else if (shared_networking_params.haveHostIp == 0)
+            {
+                // Need IP Address of MQTT Host to connect socket.
+                if (dnsRetryCount > 0)
                 {
-                    dnsRetryDelay--;
                     // still waiting for DNS look up
-                }
-                else if (mqttHostIP == 0)
-                {
-                    dnsRetryDelay = 30;
-                    wifi_getIpAddressByHostName((uint8_t*)mqtt_host);
+                    dnsRetryCount--;
+                    break;
                 }
                 else
                 {
-                    // Reinitialize MQTT
-                    debug_printInfo("CLOUD: MQTT Reinitializing");
-                    MQTT_ClientInitialise();
-                    connectMQTTSocket();
-                }
-                break;
-
-            case SOCKET_CONNECTED:
-                // If MQTT was disconnected but the socket is up we retry the MQTT connection
-                if (MQTT_GetConnectionState() == DISCONNECTED)
-                {
-                    debug_printInfo("CLOUD: MQTT Connecting");
-                    connectMQTT();
-                }
-                else
-                {
-                    MQTT_ReceptionHandler(mqttConnnectionInfo);
-                    MQTT_TransmissionHandler(mqttConnnectionInfo);
-
-                    // Todo: We already processed the data in place using PEEK, this just flushes the buffer
-                    BSD_recv(*MQTT_GetClientConnectionInfo()->tcpClientSocket, MQTT_GetClientConnectionInfo()->mqttDataExchangeBuffers.rxbuff.start, MQTT_GetClientConnectionInfo()->mqttDataExchangeBuffers.rxbuff.bufferLength, 0);
-
-                    if (MQTT_GetConnectionState() == CONNECTED)
+                    // send request to get Host IP
+                    debug_printGood("CLOUD: Getting IP for %s", mqtt_host);
+                    if (gethostbyname((char*)mqtt_host) != M2M_SUCCESS)
                     {
-                        shared_networking_params.haveERROR = 0;
-                        SYS_TIME_TimerStop(mqttTimeoutTaskHandle);
-                        SYS_TIME_TimerStop(cloudResetTaskHandle);
-                        isResetting = false;
-
-                        waitingForMQTT = false;
-
-                        if (sendSubscribe == true)
-                        {
-                            CLOUD_subscribe();
-                        }
-
-                        // The Authorization timeout is set to 3600, so we need to re-connect that often
-                        if (MQTT_getConnectionAge() > MQTT_CONN_AGE_TIMEOUT)
-                        {
-                            debug_printInfo(" MQTT: Connection aged, Uptime %lus Socket State (%d) MQTT State (%d)", thisAge, socketState, MQTT_GetConnectionState());
-                            MQTT_Disconnect(mqttConnnectionInfo);
-                            BSD_close(*mqttConnnectionInfo->tcpClientSocket);
-                        }
+                        debug_printError("CLOUD: gethostbyname failed");
+                    }
+                    else
+                    {
+                        dnsRetryCount = DNS_RETRY_COUNT;
                     }
                 }
-                break;
+            }
+            else if (MQTT_GetConnectionState() == CONNECTED)
+            {
+                CLOUD_reset();
+            }
+            else
+            {
+                // Ready to connect socket
+                assert(shared_networking_params.haveHostIp == 1);
 
-            case SOCKET_IN_PROGRESS:
-                break;
+                *mqttConnnectionInfo->tcpClientSocket = BSD_socket(PF_INET, BSD_SOCK_STREAM, 1);   // WINC_TLS
 
-            default:
-                shared_networking_params.haveERROR = 1;
-                break;
+                if (*mqttConnnectionInfo->tcpClientSocket >= 0)
+                {
+                    packetReceptionHandler_t* sockInfo = getSocketInfo(*mqttConnnectionInfo->tcpClientSocket);
+                    if (sockInfo != NULL)
+                    {
+                        sockInfo->socketState = SOCKET_CLOSED;
+                    }
+                    else
+                    {
+                        debug_printWarn("CLOUD: Socket Info Null");
+                    }
+                }
+            }
+            break;
         }
+        case SOCKET_CLOSED:   // 1
+        {
+            // Connect to socket
+            if (connectMQTTSocket() != BSD_SUCCESS)
+            {
+                debug_printError(" CLOUD: Failed to connect socket");
+            }
+            break;
+        }
+        case SOCKET_IN_PROGRESS:   //2
+            break;
+
+        case SOCKET_CONNECTED:   // 3
+        {
+
+            mqttCurrentState mqttState = MQTT_GetConnectionState();
+
+            // typedef enum
+            // {
+            //     DISCONNECTED   = 0,
+            //     CONNECTING     = 1,
+            //     WAITFORCONNACK = 2,
+            //     CONNECTED      = 3
+            // } mqttCurrentState;
+
+            // Socket is connected.
+            if (mqttState == DISCONNECTED)
+            {
+                // Start MQTT CONNECT
+                connectMQTT();
+            }
+            else
+            {
+                // Process incoming
+                mqttState = MQTT_ReceptionHandler(mqttConnnectionInfo);
+                //debug_printWarn("CLOUD: MQTT Reception %d", mqttState);
+
+                // Process outgoing
+                mqttState = MQTT_TransmissionHandler(mqttConnnectionInfo);
+                //debug_printWarn("CLOUD: MQTT Transmission %d", mqttState);
+
+                // Todo: We already processed the data in place using PEEK, this just flushes the buffer
+                BSD_recv(*MQTT_GetClientConnectionInfo()->tcpClientSocket,
+                         MQTT_GetClientConnectionInfo()->mqttDataExchangeBuffers.rxbuff.start,
+                         MQTT_GetClientConnectionInfo()->mqttDataExchangeBuffers.rxbuff.bufferLength,
+                         0);
+            }
+
+            if (mqttState == CONNECTED)
+            {
+                waitingForMQTT                              = false;
+                shared_networking_params.haveMqttConnection = 1;
+                SYS_TIME_TimerStop(mqttTimeoutTaskHandle);
+                SYS_TIME_TimerStop(cloudResetTaskHandle);
+
+                if (sendSubscribe == true)
+                {
+                    // Send MQTT SUBSCRIBE
+                    CLOUD_subscribe();
+                }
+            }
+            break;
+        }
+        case SOCKET_CLOSING:
+            break;
     }
 }
 
@@ -424,40 +523,51 @@ bool CLOUD_isConnected(void)
     }
 }
 
-void CLOUD_publishData(uint8_t* data, unsigned int len)
+void CLOUD_publishData(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos)
 {
-    pf_mqtt_client->MQTT_CLIENT_publish(data, len);
+    pf_mqtt_client->MQTT_CLIENT_publish(topic, payload, payload_len, qos);
 }
 
 void dnsHandler(uint8_t* domainName, uint32_t serverIP)
 {
     if (serverIP != 0)
     {
-        dnsRetryDelay = 0;
-        mqttHostIP    = serverIP;
-        debug_printInfo(" WIFI: mqttHostIP = (%lu.%lu.%lu.%lu)", (0x0FF & (serverIP)), (0x0FF & (serverIP >> 8)), (0x0FF & (serverIP >> 16)), (0x0FF & (serverIP >> 24)));
+        dnsRetryCount                       = 0;
+        shared_networking_params.haveHostIp = 1;
+        mqttHostIP                          = serverIP;
+
+        //shared_networking_params.haveHostIp = 1;
+        debug_printInfo(" WIFI: mqttHostIP '%lu.%lu.%lu.%lu'",
+                        (0x0FF & (serverIP)),
+                        (0x0FF & (serverIP >> 8)),
+                        (0x0FF & (serverIP >> 16)),
+                        (0x0FF & (serverIP >> 24)));
     }
 }
 
 static uint8_t reInit(void)
 {
-    debug_printInfo("CLOUD: reinit %s", ssid);
+    debug_printInfo("CLOUD: reInit");
 
+    shared_networking_params.allBits = 0;
+    waitingForMQTT                   = false;
+    uint8_t wifi_creds;
+
+    // Clear LEDs
     LED_SetBlue(LED_STATE_OFF);
     LED_SetGreen(LED_STATE_OFF);
-    shared_networking_params.haveAPConnection = 0;
-    waitingForMQTT                            = false;
-    isResetting                               = false;
-    uint8_t wifi_creds;
+
+    socketDeinit();
+    socketInit();
 
     registerSocketCallback(BSD_SocketHandler, dnsHandler);
 
     MQTT_ClientInitialise();
-    memset(&cloud_packetReceiveCallBackTable, 0, sizeof(cloud_packetReceiveCallBackTable));
-    BSD_SetRecvHandlerTable(cloud_packetReceiveCallBackTable);
 
+    memset(&cloud_packetReceiveCallBackTable, 0, sizeof(cloud_packetReceiveCallBackTable));
     cloud_packetReceiveCallBackTable[0].socket       = MQTT_GetClientConnectionInfo()->tcpClientSocket;
     cloud_packetReceiveCallBackTable[0].recvCallBack = pf_mqtt_client->MQTT_CLIENT_receive;
+    BSD_SetRecvHandlerTable(cloud_packetReceiveCallBackTable);
 
     //When the input comes through cli/.cfg
     if ((strcmp(ssid, "") != 0) && (strcmp(authType, "") != 0))
@@ -469,26 +579,40 @@ static uint8_t reInit(void)
     else
     {
         wifi_creds = DEFAULT_CREDENTIALS;
-        debug_printTrace(" WIFI: Connecting to AP with the last used credentials");
+        debug_printInfo(" WIFI: Connecting to AP with the last used credentials");
     }
 
+    LED_SetBlue(LED_STATE_BLINK_FAST);
     if (!wifi_connectToAp(wifi_creds))
     {
+        LED_SetBlue(LED_STATE_OFF);
+        LED_SetRed(LED_STATE_HOLD);
+        debug_printError(" WIFI: Failed to connect to AP");
         return false;
     }
 
-    SYS_TIME_TimerStop(cloudResetTaskHandle);
-    debug_printInfo("CLOUD: Cloud reset timer is deleted");
+    debug_printInfo("CLOUD: Wifi Connect timer is started");
+    wifiTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(wifiTimeoutTaskcb, 0, WIFI_CONNECT_TIMEOUT, SYS_TIME_SINGLE);
 
-    mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
-    cloudResetTimerFlag   = false;
-    waitingForMQTT        = true;
+    // SYS_TIME_TimerStop(cloudResetTaskHandle);
+    // debug_printInfo("CLOUD: Cloud reset timer is deleted");
+
+    // mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
+    // waitingForMQTT        = true;
+
+    cloudInitPending = false;
 
     return true;
 }
 
 void CLOUD_sched(void)
 {
+    if (wifiTimeoutTaskTmrExpired == true)
+    {
+        wifiTimeoutTaskTmrExpired = false;
+        wifiTimeoutTask();
+    }
+
     if (mqttTimeoutTaskTmrExpired == true)
     {
         mqttTimeoutTaskTmrExpired = false;

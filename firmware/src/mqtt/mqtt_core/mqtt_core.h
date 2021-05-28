@@ -49,6 +49,7 @@
 #define WAITFORSUBACK_TIMEOUT   (30 * SECONDS)
 #define WAITFORUNSUBACK_TIMEOUT (30 * SECONDS)
 
+#pragma pack(push, 1)
 
 /*******************Timeout Driver for MQTT definitions*(END)******************/
 
@@ -372,6 +373,7 @@ typedef struct
 } mqttUnsubackPacket;
 
 
+#pragma pack(pop)
 /***********************MQTT Client definitions*(END)**************************/
 
 int32_t MQTT_getConnectionAge(void);
@@ -384,10 +386,11 @@ void    MQTT_initialiseState(void);
 mqttCurrentState MQTT_Disconnect(mqttContext* mqttContextPtr);
 mqttCurrentState MQTT_TransmissionHandler(mqttContext* mqttContextPtr);
 mqttCurrentState MQTT_ReceptionHandler(mqttContext* mqttContextPtr);
-
 mqttCurrentState MQTT_GetConnectionState(void);
 
-void MQTT_sched(void);
+typedef void (*MQTTPubAckCallbackPtr)(mqttPubackPacket* data);
 
+void MQTT_Set_Puback_callback(MQTTPubAckCallbackPtr callback);
+void MQTT_sched(void);
 
 #endif /* MQTT_CORE_H */

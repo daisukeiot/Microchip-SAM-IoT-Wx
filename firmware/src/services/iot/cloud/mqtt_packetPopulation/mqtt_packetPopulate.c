@@ -27,34 +27,22 @@
 #include "iot_config/cloud_config.h"
 
 char* hub_hostname = CFG_MQTT_HUB_HOST;
-char mqtt_password_buf[512];
-char mqtt_username_buf[200];
 
-char digit_to_hex(char number)
-{
-	return (char)(number + (number < 10 ? '0' : 'A' - 10));
-}
-
-char* url_encode_rfc3986(char* s, char* dest, size_t dest_len) {
-
-	for (; *s && dest_len > 1; s++) {
-
-		if (isalnum(*s) || *s == '~' || *s == '-' || *s == '.' || *s == '_')
-		{
-			*dest++ = *s;
-		}
-		else if (dest_len < 4)
-		{
-			break;
-		}
-		else
-		{
-			*dest++ = '%';
-			*dest++ = digit_to_hex(*s / 16);
-			*dest++ = digit_to_hex(*s % 16);
-		}
-	}
-
-	*dest++ = '\0';
-	return dest;
-}
+uint8_t           device_id_buffer[128 + 1];   // Maximum number of characters in a device ID = 128
+az_span           device_id_span;
+az_iot_pnp_client pnp_client;
+/*
+* MQTT User Name for DPS
+* {idScope}/registrations/{registration_id}/api-version=2019-03-31
+* idScope = 11 characters : e.g. 0ne01234567
+* registration_id = Up to 128 characters
+* 38 + 11 + 128 = 177
+*
+* MQTT User Name for IoT Hub
+* {iothubhostname}/{device_id}/?api-version=2018-06-30
+* iothubhostname =  <IoT Hub Name>.azure-devices.net
+*   IoT Hub Name = up to 50 characters
+* device_id = up to 128
+* 25 + 50 + 128 = 203
+*/
+char mqtt_username_buffer[203 + 1];

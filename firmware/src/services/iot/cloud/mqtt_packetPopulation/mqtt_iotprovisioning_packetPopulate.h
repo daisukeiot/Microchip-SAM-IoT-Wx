@@ -35,7 +35,7 @@
 
 #define ATCA_SLOT_DPS_IDSCOPE 8   // Slot # in ATECC608A SE which stores the ID Scope
 
-void MQTT_CLIENT_iotprovisioning_publish(uint8_t* data, uint16_t len);
+void MQTT_CLIENT_iotprovisioning_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos);
 void MQTT_CLIENT_iotprovisioning_receive(uint8_t* data, uint16_t len);
 void MQTT_CLIENT_iotprovisioning_connect(char* deviceID);
 bool MQTT_CLIENT_iotprovisioning_subscribe();

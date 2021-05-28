@@ -27,25 +27,34 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "azure/core/az_span.h"
+#include "azure/iot/az_iot_pnp_client.h"
 
-extern char cid[];
-extern char mqtt_topic_buf[];
-extern char mqtt_password_buf[512];
-extern char mqtt_username_buf[200];
-static const uint8_t az_iot_b64rules[4] = { '+', '/', '=', 0 };
+extern char*             hub_hostname;
+extern uint8_t           device_id_buffer[128 + 1];
+extern az_span           device_id_span;
+extern az_iot_pnp_client pnp_client;
+extern char              mqtt_username_buffer[203 + 1];
+
+typedef enum
+{
+    /* Application's state machine's initial state. */
+    QOS_PNP_NONE = 0,
+    QOS_PNP_PROPERTY,
+    QOS_PNP_TELEMETRY,
+    QOS_PNP_COMMAND
+} QOS_TYPE;
 
 typedef struct
 {
-  void (*MQTT_CLIENT_publish)(uint8_t *data, uint16_t len);
-  void (*MQTT_CLIENT_receive)(uint8_t *data, uint16_t len);
-  void (*MQTT_CLIENT_connect)(char* deviceID);
-  bool (*MQTT_CLIENT_subscribe)();
-  void (*MQTT_CLIENT_connected)();  
-  void (*MQTT_CLIENT_task_completed)();  
-}  pf_MQTT_CLIENT;
+    void (*MQTT_CLIENT_publish)(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos);
+    void (*MQTT_CLIENT_receive)(uint8_t* data, uint16_t len);
+    void (*MQTT_CLIENT_connect)(char* device_id);
+    bool (*MQTT_CLIENT_subscribe)();
+    void (*MQTT_CLIENT_connected)();
+    void (*MQTT_CLIENT_task_completed)();
+} pf_MQTT_CLIENT;
 
-char* url_encode_rfc3986(char* s, char* dest, size_t dest_len);
-
-extern char* hub_hostname;
+static const az_span twin_request_id_span = AZ_SPAN_LITERAL_FROM_STR("initial_get");
 
 #endif /* MQTT_PACKET_POPULATE_H */
