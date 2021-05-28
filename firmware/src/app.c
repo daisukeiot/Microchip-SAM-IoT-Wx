@@ -208,6 +208,20 @@ static void APP_WiFiConnectionStateChanged(uint8_t status)
         CLOUD_reset();
     }
 }
+// *****************************************************************************
+// *****************************************************************************
+// Section: Button interrupt handlers
+// *****************************************************************************
+// *****************************************************************************
+void APP_SW0_Handler(void)
+{
+    LED_SetYellow(LED_STATE_HOLD);
+}
+
+void APP_SW1_Handler(void)
+{
+    LED_SetYellow(LED_STATE_OFF);
+}
 
 // *****************************************************************************
 // *****************************************************************************
@@ -265,6 +279,10 @@ void APP_Initialize(void)
 #if (CFG_APP_WINC_DEBUG == 1)
     WDRV_WINC_DebugRegisterCallback(debug_printer);
 #endif
+    EIC_CallbackRegister(EIC_PIN_0, (EIC_CALLBACK)APP_SW0_Handler, 0);
+    EIC_InterruptEnable(EIC_PIN_0);
+    EIC_CallbackRegister(EIC_PIN_1, (EIC_CALLBACK)APP_SW1_Handler, 0);
+    EIC_InterruptEnable(EIC_PIN_1);
 }
 
 static void APP_ConnectNotifyCb(DRV_HANDLE handle, WDRV_WINC_CONN_STATE currentState, WDRV_WINC_CONN_ERROR errorCode)
