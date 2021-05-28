@@ -204,7 +204,7 @@ void set_deviceId(char* id);
 
 typedef union
 {
-    uint8_t allBits;
+    uint16_t allBits;
     struct
     {
         unsigned haveAPConnection : 1;
@@ -214,7 +214,8 @@ typedef union
         unsigned haveMqttConnection : 1;
         unsigned amDisconnecting : 1;
         unsigned haveERROR : 1;
-        unsigned : 1;
+        unsigned cloudInitPending :1;
+        unsigned : 8;
     };
 } shared_networking_params_t;
 

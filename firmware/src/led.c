@@ -171,7 +171,11 @@ void LED_SetBlue(led_set_state_t newState)
     {
         case LED_STATE_OFF:
         case LED_STATE_HOLD:
-            if ((newState & (LED_STATE_BLINK_FAST | LED_STATE_BLINK_SLOW)) != 0)
+            if ((newState & LED_STATE_BLINK_FAST) != 0)
+            {
+                blinkTimer_blue = SYS_TIME_CallbackRegisterMS(blink_task, LED_BLUE, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+            }
+            else if ((newState & LED_STATE_BLINK_SLOW) != 0)
             {
                 blinkTimer_blue = SYS_TIME_CallbackRegisterMS(blink_task, LED_BLUE, LED_ON_INTERVAL, SYS_TIME_PERIODIC);
             }
@@ -225,7 +229,7 @@ void LED_SetGreen(led_set_state_t newState)
     }
 
 #if (CFG_LED_DEBUG == 1)
-    debug_printInfo( CSI_GREEN "LED-G: %s => %s", debug_led_state[led_status.state_flag.green], debug_led_state[newState]);
+    debug_printInfo(CSI_GREEN "LED-G: %s => %s", debug_led_state[led_status.state_flag.green], debug_led_state[newState]);
 #endif
 
     switch ((int32_t)led_status.state_flag.green)
@@ -393,4 +397,45 @@ void LED_SetRed(led_set_state_t newState)
 
     led_status.state_flag.red  = newState;
     led_status.change_flag.red = 1;
+}
+
+void LED_SetWiFi(led_indicator_name_t state)
+{
+    debug_printGood("WIFI LED %d", state);
+    switch (state)
+    {
+        case LED_INDICATOR_OFF:
+            LED_SetBlue(LED_STATE_OFF);
+            break;
+        case LED_INDICATOR_PENDING:
+            LED_SetBlue(LED_STATE_BLINK_SLOW);
+            break;
+        case LED_INDICATOR_SUCCESS:
+            LED_SetBlue(LED_STATE_HOLD);
+            break;
+        case LED_INDICATOR_ERROR:
+            LED_SetBlue(LED_STATE_BLINK_FAST);
+            LED_SetRed(LED_STATE_HOLD);
+            break;
+    }
+}
+
+void LED_SetCloud(led_indicator_name_t state)
+{
+    switch (state)
+    {
+        case LED_INDICATOR_OFF:
+            LED_SetGreen(LED_STATE_OFF);
+            break;
+        case LED_INDICATOR_PENDING:
+            LED_SetGreen(LED_STATE_BLINK_SLOW);
+            break;
+        case LED_INDICATOR_SUCCESS:
+            LED_SetGreen(LED_STATE_HOLD);
+            break;
+        case LED_INDICATOR_ERROR:
+            LED_SetGreen(LED_STATE_BLINK_FAST);
+            LED_SetRed(LED_STATE_HOLD);
+            break;
+    }
 }

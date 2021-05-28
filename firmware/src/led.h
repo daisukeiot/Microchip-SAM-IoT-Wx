@@ -99,6 +99,14 @@ typedef enum
     LED_STAT_MAX         = INT16_MAX
 } led_set_state_t;
 
+typedef enum
+{
+    LED_INDICATOR_OFF     = 0,
+    LED_INDICATOR_PENDING = (1 << 0),
+    LED_INDICATOR_SUCCESS = (1 << 1),
+    LED_INDICATOR_ERROR   = (1 << 2)
+} led_indicator_name_t;
+
 void LED_test(void);
 void LED_init(void);
 
@@ -106,5 +114,7 @@ void LED_SetBlue(led_set_state_t newState);
 void LED_SetGreen(led_set_state_t newState);
 void LED_SetYellow(led_set_state_t newState);
 void LED_SetRed(led_set_state_t newState);
+void LED_SetWiFi(led_indicator_name_t state);
+void LED_SetCloud(led_indicator_name_t state);
 
 #endif /* LED_H_ */

@@ -89,6 +89,25 @@ typedef struct
     int8_t             reported_led_green;
 } twin_properties_t;
 
+typedef union
+{
+    struct {
+        unsigned sw0:1;
+        unsigned sw1:1;
+        unsigned reserved:14;
+    };
+    unsigned AsUSHORT;
+} button_press_flag_t;
+
+typedef struct
+{
+    uint32_t sw0_press_count;
+    uint32_t sw1_press_count;
+    button_press_flag_t flag;
+} button_press_data_t;
+
+extern button_press_data_t button_press_data;
+
 void init_twin_data(
     twin_properties_t* twin_properties);
 
@@ -113,6 +132,7 @@ az_result append_jason_property_string(
 //     char*   topic,
 //     az_span payload,
 //     int     qos);
+void check_button_status(void);
 
 az_result send_telemetry_message(void);
 
