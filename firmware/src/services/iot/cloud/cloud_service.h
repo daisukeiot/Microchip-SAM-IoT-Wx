@@ -19,7 +19,7 @@ void CLOUD_reset(void);
 void CLOUD_subscribe(void);
 void CLOUD_disconnect(void);
 bool CLOUD_isConnected(void);
-void CLOUD_publishData(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos);
+void CLOUD_publishData(uint8_t* topic, uint8_t* payload, uint16_t payload_len, int qos);
 void CLOUD_task(void);
 void CLOUD_sched(void);
 void dnsHandler(uint8_t* domainName, uint32_t serverIP);

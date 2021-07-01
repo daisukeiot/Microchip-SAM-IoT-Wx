@@ -168,14 +168,14 @@
       "schema": {
         "@id": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
         "@type": "Enum",
-        "valueSchema": "integer",
+        "valueSchema": "string",
         "enumValues": [
           {
             "name": "On",
             "displayName": {
               "en": "LED On"
             },
-            "enumValue": 1,
+            "enumValue": "On",
             "description": "LED is turned on.",
             "comment": "LED is in the On state."
           },
@@ -184,7 +184,7 @@
             "displayName": {
               "en": "LED Off"
             },
-            "enumValue": 2,
+            "enumValue": "Off",
             "description": "LED is turned Off.",
             "comment": "LED is in the Off state."
           },
@@ -193,7 +193,7 @@
             "displayName": {
               "en": "LED Blinking"
             },
-            "enumValue": 3,
+            "enumValue": "Blink",
             "description": "LED is blinking.",
             "comment": "LED is blinking."
           }
