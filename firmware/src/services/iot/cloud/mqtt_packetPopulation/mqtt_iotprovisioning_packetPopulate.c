@@ -62,7 +62,7 @@ static void            dps_retry_task(uintptr_t context);
 static SYS_TIME_HANDLE dps_assigning_timer_handle = SYS_TIME_HANDLE_INVALID;
 static void            dps_assigning_task(uintptr_t context);
 
-void MQTT_CLIENT_iotprovisioning_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos)
+void MQTT_CLIENT_iotprovisioning_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, int qos)
 {
     debug_printWarn("  DPS: %s() not implemented", __FUNCTION__);
     return;

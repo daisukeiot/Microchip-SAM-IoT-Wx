@@ -10,6 +10,7 @@
 #include "mqtt/mqtt_core/mqtt_core.h"
 #include "azure/core/az_span.h"
 #include "azure/core/az_json.h"
+#include "azure/core/az_http.h"
 #include "azure/iot/az_iot_pnp_client.h"
 #include "services/iot/cloud/cloud_service.h"
 #include "led.h"

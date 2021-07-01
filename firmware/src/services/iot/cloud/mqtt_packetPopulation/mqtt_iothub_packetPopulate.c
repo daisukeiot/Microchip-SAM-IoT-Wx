@@ -63,10 +63,7 @@ extern char              mqtt_username_buffer[203 + 1];
 //static const az_span twin_request_id_span = AZ_SPAN_LITERAL_FROM_STR("initial_get");
 static char          mqtt_get_twin_topic_buffer[64];
 
-static uint16_t packet_identifier;
-static char     packet_identifier_buffer[16];
-
-OSAL_MUTEX_HANDLE_TYPE publish_mutex;
+static volatile uint16_t packet_identifier;
 
 /** \brief MQTT publish handler call back table.
  *
@@ -80,12 +77,10 @@ OSAL_MUTEX_HANDLE_TYPE publish_mutex;
  */
 publishReceptionHandler_t imqtt_publishReceiveCallBackTable[MAX_NUM_TOPICS_SUBSCRIBE];
 
-void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos)
+void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, int qos)
 {
     uint16_t packet_id = 0;
     int      qos_value = 0;
-
-    debug_printGood("  HUB: PUBLISH");
 
     if (topic == NULL)
     {
@@ -93,26 +88,13 @@ void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t paylo
         return;
     }
 
-    if (qos == QOS_PNP_PROPERTY)
-    {
-        // called with Mutex held
-        packet_id = get_current_publish_packet_id();
-        qos_value = 1;
-    }
-    else if (qos != QOS_PNP_NONE)
+    if (qos == 1)
     {
         qos_value = 1;
-        debug_printGood("AZURE: > PUBLISH Mutex - T");
-        if (OSAL_RESULT_TRUE != MUTEX_Lock(&publish_mutex, OSAL_WAIT_FOREVER))
-        {
-            debug_printError("  HUB: Failed to lock publish_mutex");
-            return;
-        }
-        debug_printGood("AZURE: >> PUBLISH Mutex Locked - T");
         packet_id = ++packet_identifier;
     }
 
-    debug_printGood("  HUB: PUBLISH with ID %d", get_current_publish_packet_id());
+    debug_printGood("  HUB: PUBLISH with ID %d", packet_identifier);
 
     mqttPublishPacket cloudPublishPacket;
     // Fixed header
@@ -149,17 +131,14 @@ void MQTT_CLIENT_iothub_receive(uint8_t* data, uint16_t len)
         mqttPubackPacket* mqtt_puback = (mqttPubackPacket*)data;
         uint16_t          identifier  = mqtt_puback->packetIdentifierLSB << 8 | mqtt_puback->packetIdentifierMSB;
 
-        debug_printGood("  HUB: Received PUBACK Current ID %d %d", get_current_publish_packet_id, identifier);
+        debug_printGood("  HUB: Received PUBACK for Packet ID %d", identifier);
     }
     MQTT_GetReceivedData(data, len);
 }
 
 void MQTT_CLIENT_iothub_puback_callback(mqttPubackPacket* data)
 {
-    OSAL_MUTEX_Unlock(&publish_mutex);
-    debug_printGood("AZURE: << Mutex Unlocked");
-
-    debug_printGood("  HUB: %s() Current ID %d Packet %d", __FUNCTION__, get_current_publish_packet_id(), (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
+    debug_printGood("  HUB: %s() Packet %d", __FUNCTION__, (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
 }
 
 void MQTT_CLIENT_iothub_connect(char* device_id)
@@ -173,15 +152,6 @@ void MQTT_CLIENT_iothub_connect(char* device_id)
     debug_printGood("  HUB: Sending MQTT CONNECT to '%s'", hub_hostname);
 
     LED_SetGreen(LED_STATE_BLINK_SLOW);
-
-    if (OSAL_RESULT_TRUE != OSAL_MUTEX_Create(&publish_mutex))
-    {
-        debug_printError("  HUB: failed to create Publish Mutex");
-    }
-    else
-    {
-        debug_printGood("  HUB: Created Publish Mutex");
-    }
 
 #ifdef IOT_PLUG_AND_PLAY_MODEL_ID
     az_span_copy(device_id_span, device_id_span_local);
@@ -308,21 +278,4 @@ void MQTT_CLIENT_iothub_connected()
     }
 
     pf_mqtt_iothub_client.MQTT_CLIENT_task_completed();
-}
-
-az_span get_publish_packet_id(void)
-{
-    az_span remainder;
-    az_span out_span = az_span_create(
-        (uint8_t*)packet_identifier_buffer, sizeof(packet_identifier_buffer));
-
-    az_result rc = az_span_u32toa(out_span, packet_identifier++, &remainder);
-    EXIT_WITH_MESSAGE_IF_FAILED(rc, "AZURE:Failed to get request id");
-
-    return az_span_slice(out_span, 0, az_span_size(out_span) - az_span_size(remainder));
-}
-
-uint16_t get_current_publish_packet_id(void)
-{
-    return packet_identifier;
 }

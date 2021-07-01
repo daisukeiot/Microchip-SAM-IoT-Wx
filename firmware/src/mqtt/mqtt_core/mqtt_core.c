@@ -134,7 +134,9 @@ static newRxDataFlags mqttRxFlags;
 static mqttConnectPacket txConnectPacket;
 
 /** \brief PUBLISH packet to be transmitted. */
-static mqttPublishPacket txPublishPacket;
+//static mqttPublishPacket txPublishPacket;
+static volatile mqttPublishPacket* txPublishPacketHead    = NULL;
+static volatile mqttPublishPacket* txPublishPacketPending = NULL;
 
 /** \brief SUBSCRIBE packet to be transmitted. */
 static mqttSubscribePacket txSubscribePacket;
@@ -497,8 +499,7 @@ void checkConnackTimeoutState(void)
 void checkPingreqTimeoutState(void)
 {
     pingreqTimeoutOccured = true;   // Mark that timer has executed
-    //return ((ntohs(txConnectPacket.connectVariableHeader.keepAliveTimer) - KEEP_ALIVE_CALCULATION_CONSTANT) * SECONDS);
-    //SYS_TIME_TimerReload(checkPingreqTimeoutStateHandle, 0, ((ntohs(txConnectPacket.connectVariableHeader.keepAliveTimer) - KEEP_ALIVE_CALCULATION_CONSTANT) * SECONDS), checkPingreqTimeoutStatecb, 0, SYS_TIME_PERIODIC);
+
     checkPingreqTimeoutStateHandle = SYS_TIME_CallbackRegisterMS(checkPingreqTimeoutStatecb, 0,
                                                                  ((ntohs(txConnectPacket.connectVariableHeader.keepAliveTimer) - KEEP_ALIVE_CALCULATION_CONSTANT) * SECONDS),
                                                                  SYS_TIME_SINGLE);
@@ -627,43 +628,92 @@ bool MQTT_CreateConnectPacket(mqttConnectPacket* newConnectPacket)
     return true;
 }
 
+mqttPublishPacket* MQTT_GetPublishPacket(void)
+{
+    mqttPublishPacket* current = NULL;
+
+    // Retrieves the oldest Publish Packet from the list (beginning of the list)
+    if (txPublishPacketHead != NULL)
+    {
+        current             = (mqttPublishPacket*)txPublishPacketHead;
+        txPublishPacketHead = current->next;
+    }
+
+    return current;
+}
+
+void MQTT_AddPublishPacketToList(mqttPublishPacket* newPacket)
+{
+    // Add to the list
+
+    if (txPublishPacketHead == NULL)
+    {
+        // add to the head of the linked list.
+        txPublishPacketHead = newPacket;
+    }
+    else
+    {
+        // add to the end of the linked list
+        mqttPublishPacket* current = (mqttPublishPacket*)txPublishPacketHead;
+
+        while (current->next != NULL)
+        {
+            current = current->next;
+        }
+
+        current->next = newPacket;
+    }
+
+    return;
+}
+
 bool MQTT_CreatePublishPacket(mqttPublishPacket* newPublishPacket)
 {
     bool ret;
 
     ret = false;
 
-    memset(&txPublishPacket, 0, sizeof(txPublishPacket));
+    mqttPublishPacket* newPacket = NULL;
 
-    assert(mqttRxFlags.newRxPubackPacket == 0);
-
-    if (mqttState == CONNECTED && mqttRxFlags.newRxPubackPacket == 0)
+    if (mqttState == CONNECTED)
     {
-        // Fixed header
-        txPublishPacket.publishHeaderFlags.controlPacketType = PUBLISH;
-        txPublishPacket.publishHeaderFlags.duplicate         = newPublishPacket->publishHeaderFlags.duplicate;
-        txPublishPacket.publishHeaderFlags.qos               = newPublishPacket->publishHeaderFlags.qos;
-        if ((txPublishPacket.publishHeaderFlags.qos == 0) && (txPublishPacket.publishHeaderFlags.duplicate != 0))
+        newPacket = malloc(sizeof(mqttPublishPacket));
+
+        if (newPacket == NULL)
         {
-            txPublishPacket.publishHeaderFlags.duplicate = 0;
+            return ret;
         }
-        txPublishPacket.publishHeaderFlags.retain = newPublishPacket->publishHeaderFlags.retain;
+
+        memset(newPacket, 0, sizeof(mqttPublishPacket));
+
+        // Fixed header
+        newPacket->publishHeaderFlags.controlPacketType = PUBLISH;
+        newPacket->publishHeaderFlags.duplicate         = newPublishPacket->publishHeaderFlags.duplicate;
+        newPacket->publishHeaderFlags.qos               = newPublishPacket->publishHeaderFlags.qos;
+        if ((newPacket->publishHeaderFlags.qos == 0) && (newPacket->publishHeaderFlags.duplicate != 0))
+        {
+            newPacket->publishHeaderFlags.duplicate = 0;
+        }
+        newPacket->publishHeaderFlags.retain = newPublishPacket->publishHeaderFlags.retain;
 
         // Variable header
-        txPublishPacket.topic       = newPublishPacket->topic;
-        txPublishPacket.topicLength = strlen((char*)newPublishPacket->topic);
+        newPacket->topic       = newPublishPacket->topic;
+        newPacket->topicLength = strlen((char*)newPublishPacket->topic);
         if (newPublishPacket->publishHeaderFlags.qos > 0)
         {
-            txPublishPacket.packetIdentifierLSB = newPublishPacket->packetIdentifierLSB;
-            txPublishPacket.packetIdentifierMSB = newPublishPacket->packetIdentifierMSB;
-            txPublishPacket.totalLength += sizeof(txPublishPacket.packetIdentifierLSB) + sizeof(txPublishPacket.packetIdentifierMSB);
+            newPacket->packetIdentifierLSB = newPublishPacket->packetIdentifierLSB;
+            newPacket->packetIdentifierMSB = newPublishPacket->packetIdentifierMSB;
+            newPacket->totalLength += sizeof(newPacket->packetIdentifierLSB) + sizeof(newPacket->packetIdentifierMSB);
         }
 
         // Payload
-        txPublishPacket.payload       = newPublishPacket->payload;
-        txPublishPacket.payloadLength = newPublishPacket->payloadLength;
-        txPublishPacket.totalLength += sizeof(txPublishPacket.topicLength) + txPublishPacket.topicLength + txPublishPacket.payloadLength;
-        txPublishPacket.topicLength = htons(txPublishPacket.topicLength);
+        newPacket->payload       = newPublishPacket->payload;
+        newPacket->payloadLength = newPublishPacket->payloadLength;
+        newPacket->totalLength += sizeof(newPacket->topicLength) + newPacket->topicLength + newPacket->payloadLength;
+        newPacket->topicLength = htons(newPacket->topicLength);
+
+
+        MQTT_AddPublishPacketToList(newPacket);
 
         mqttTxFlags.newTxPublishPacket = 1;
 
@@ -799,37 +849,55 @@ static bool mqttSendConnect(mqttContext* mqttConnectionPtr)
 
 static bool mqttSendPublish(mqttContext* mqttConnectionPtr)
 {
-    bool ret = false;
+    bool               ret           = false;
+    mqttPublishPacket* publishPacket = NULL;
+
+    publishPacket = MQTT_GetPublishPacket();
+
+    if (publishPacket == NULL)
+    {
+        // Nothing to send.  // this should not happen..
+        debug_printError(" MQTT: Publish Packet not found");
+        assert(false);
+        return ret;
+    }
 
     MQTT_ExchangeBufferInit(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff);
     MQTT_ExchangeBufferInit(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff);
 
     // Copy the txPublishPacket data in TCP Tx buffer
-    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, &txPublishPacket.publishHeaderFlags.All, sizeof(txPublishPacket.publishHeaderFlags.All));
-    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, txPublishPacket.remainingLength, mqttEncodeLength(txPublishPacket.totalLength, txPublishPacket.remainingLength));
-    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, (uint8_t*)&txPublishPacket.topicLength, sizeof(txPublishPacket.topicLength));
-    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, txPublishPacket.topic, ntohs(txPublishPacket.topicLength));
+    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, &publishPacket->publishHeaderFlags.All, sizeof(publishPacket->publishHeaderFlags.All));
+    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, publishPacket->remainingLength, mqttEncodeLength(publishPacket->totalLength, publishPacket->remainingLength));
+    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, (uint8_t*)&publishPacket->topicLength, sizeof(publishPacket->topicLength));
+    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, publishPacket->topic, ntohs(publishPacket->topicLength));
 
-    if (txPublishPacket.publishHeaderFlags.qos == 1)
+    if (publishPacket->publishHeaderFlags.qos == 1)
     {
-        MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, &txPublishPacket.packetIdentifierMSB, sizeof(txPublishPacket.packetIdentifierMSB));
-        MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, &txPublishPacket.packetIdentifierLSB, sizeof(txPublishPacket.packetIdentifierLSB));
+        MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, &publishPacket->packetIdentifierMSB, sizeof(publishPacket->packetIdentifierMSB));
+        MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, &publishPacket->packetIdentifierLSB, sizeof(publishPacket->packetIdentifierLSB));
     }
-    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, txPublishPacket.payload, txPublishPacket.payloadLength);
+    MQTT_ExchangeBufferWrite(&mqttConnectionPtr->mqttDataExchangeBuffers.txbuff, publishPacket->payload, publishPacket->payloadLength);
 
     // Function call to TCP_Send() is abstracted
-    if (mqttTxFlags.newTxPublishPacket == 1 || txPublishPacket.publishHeaderFlags.duplicate == 1)
+    if (mqttTxFlags.newTxPublishPacket == 1 || publishPacket->publishHeaderFlags.duplicate == 1)
     {
         ret = MQTT_Send(mqttConnectionPtr);
         if (ret == true)
         {
             mqttTxFlags.newTxPublishPacket = 0;
-            if (txPublishPacket.publishHeaderFlags.qos == 1)
+            if (publishPacket->publishHeaderFlags.qos == 1)
             {
+                txPublishPacketPending        = publishPacket;
                 mqttRxFlags.newRxPubackPacket = 1;
-
-                // To Do : Add timeout handler
             }
+            else
+            {
+                free(publishPacket);
+            }
+        }
+        else
+        {
+            free(publishPacket);
         }
     }
     return ret;
@@ -1130,7 +1198,7 @@ static mqttCurrentState mqttProcessPublish(mqttContext* mqttConnectionPtr)
 
 static void mqttProcessPuback(mqttContext* mqttConnectionPtr)
 {
-    mqttPubackPacket rxPubackPacket;
+    mqttPubackPacket   rxPubackPacket;
 
     debug_printTrace(" MQTT: mqttProcessPuback()");
 
@@ -1139,13 +1207,19 @@ static void mqttProcessPuback(mqttContext* mqttConnectionPtr)
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, &rxPubackPacket.remainingLength, sizeof(rxPubackPacket.remainingLength));
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, &rxPubackPacket.packetIdentifierMSB, sizeof(rxPubackPacket.packetIdentifierMSB));
     MQTT_ExchangeBufferRead(&mqttConnectionPtr->mqttDataExchangeBuffers.rxbuff, &rxPubackPacket.packetIdentifierLSB, sizeof(rxPubackPacket.packetIdentifierLSB));
-    if (rxPubackPacket.packetIdentifierLSB == txPublishPacket.packetIdentifierLSB && rxPubackPacket.packetIdentifierMSB == txPublishPacket.packetIdentifierMSB)
+
+    if (txPublishPacketPending != NULL)
     {
-        if (mqttPubackCallback)
+        if (rxPubackPacket.packetIdentifierLSB == txPublishPacketPending->packetIdentifierLSB && rxPubackPacket.packetIdentifierMSB == txPublishPacketPending->packetIdentifierMSB)
         {
-            mqttPubackCallback(&rxPubackPacket);
+            if (mqttPubackCallback)
+            {
+                mqttPubackCallback(&rxPubackPacket);
+            }
+            mqttRxFlags.newRxPubackPacket = 0;
+            free((void*)txPublishPacketPending);
+            txPublishPacketPending = NULL;
         }
-        mqttRxFlags.newRxPubackPacket = 0;
     }
 }
 
@@ -1194,13 +1268,22 @@ mqttCurrentState MQTT_TransmissionHandler(mqttContext* mqttConnectionPtr)
                         }
                         break;
                     case SENDPUBLISH:
-                        SYS_TIME_TimerStop(checkPingreqTimeoutStateHandle);
-                        packetSent = mqttSendPublish(mqttConnectionPtr);
 
-                        keepAliveTimeout = ntohs(txConnectPacket.connectVariableHeader.keepAliveTimer);
-                        if (txConnectPacket.connectVariableHeader.keepAliveTimer > 0)
+                        if (txPublishPacketPending != NULL)
                         {
-                            checkPingreqTimeoutStateHandle = SYS_TIME_CallbackRegisterMS(checkPingreqTimeoutStatecb, 0, ((keepAliveTimeout - KEEP_ALIVE_CALCULATION_CONSTANT) * SECONDS), SYS_TIME_SINGLE);
+                            // A messsage was published with QoS.  Wait for PUBACK.
+                            debug_printGood(" MQTT: Waiting for PUBACK");
+                        }
+                        else
+                        {
+                            SYS_TIME_TimerStop(checkPingreqTimeoutStateHandle);
+                            packetSent = mqttSendPublish(mqttConnectionPtr);
+
+                            keepAliveTimeout = ntohs(txConnectPacket.connectVariableHeader.keepAliveTimer);
+                            if (txConnectPacket.connectVariableHeader.keepAliveTimer > 0)
+                            {
+                                checkPingreqTimeoutStateHandle = SYS_TIME_CallbackRegisterMS(checkPingreqTimeoutStatecb, 0, ((keepAliveTimeout - KEEP_ALIVE_CALCULATION_CONSTANT) * SECONDS), SYS_TIME_SINGLE);
+                            }
                         }
                         break;
                     case SENDSUBSCRIBE:

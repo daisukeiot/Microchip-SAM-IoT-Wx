@@ -33,16 +33,12 @@
 #include <stdint.h>
 #include "iot_config/cloud_config.h"
 
-void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos);
+void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t payload_len, int qos);
 void MQTT_CLIENT_iothub_receive(uint8_t* data, uint16_t len);
 void MQTT_CLIENT_iothub_connect(char* deviceID);
 bool MQTT_CLIENT_iothub_subscribe();
 void MQTT_CLIENT_iothub_connected();
 void MQTT_CLIENT_iothub_puback_callback(mqttPubackPacket* data);
-
-
-az_span  get_publish_packet_id(void);
-uint16_t get_current_publish_packet_id(void);
 
 extern char* hub_hostname;
 
