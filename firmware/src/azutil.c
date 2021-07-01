@@ -592,20 +592,25 @@ static az_result process_reboot_command(
         }
         else
         {
-
             int reboot_delay_seconds = atoi((const char*)&reboot_delay[2]);
-
-            debug_printInfo("AZURE: Scheduling reboot in %d sec", reboot_delay_seconds);
-            reboot_task_handle = SYS_TIME_CallbackRegisterMS(reboot_task_callback,
-                                                             0,
-                                                             reboot_delay_seconds * 1000,
-                                                             SYS_TIME_SINGLE);
 
             RETURN_ERR_IF_FAILED(build_command_resp_payload(response_span,
                                                             reboot_delay_seconds,
                                                             out_response_span));
 
             *out_response_status = AZ_HTTP_STATUS_CODE_ACCEPTED;
+
+            debug_printInfo("AZURE: Scheduling reboot in %d sec", reboot_delay_seconds);
+
+            reboot_task_handle = SYS_TIME_CallbackRegisterMS(reboot_task_callback,
+                                                             0,
+                                                             reboot_delay_seconds * 1000,
+                                                             SYS_TIME_SINGLE);
+
+            if (reboot_task_handle == SYS_TIME_HANDLE_INVALID)
+            {
+                debug_printError("AZURE: Failed to schedule reboot timer");
+            }
         }
     }
 
@@ -866,7 +871,7 @@ az_result send_reported_property(
     if (twin_properties->flag.AsUSHORT == 0)
     {
         // Nothing to do.
-        debug_printGood("AZURE: No property update");
+        // debug_printGood("AZURE: No property update");
         return AZ_OK;
     }
 

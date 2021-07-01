@@ -138,7 +138,8 @@ void MQTT_CLIENT_iothub_receive(uint8_t* data, uint16_t len)
 
 void MQTT_CLIENT_iothub_puback_callback(mqttPubackPacket* data)
 {
-    debug_printGood("  HUB: %s() Packet %d", __FUNCTION__, (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
+    //debug_printGood("  HUB: %s() Packet %d", __FUNCTION__, (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
+    return;
 }
 
 void MQTT_CLIENT_iothub_connect(char* device_id)
