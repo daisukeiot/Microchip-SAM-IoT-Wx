@@ -327,7 +327,6 @@ void LED_SetGreen(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_green);
-                blinkTimer_green = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -336,7 +335,6 @@ void LED_SetGreen(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_green);
-                blinkTimer_green = SYS_TIME_HANDLE_INVALID;
             }
 
             break;
@@ -403,7 +401,6 @@ void LED_SetYellow(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_yellow);
-                blinkTimer_yellow = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -497,7 +494,6 @@ void LED_SetRed(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_red);
-                blinkTimer_red = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -506,7 +502,6 @@ void LED_SetRed(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_red);
-                blinkTimer_red = SYS_TIME_HANDLE_INVALID;
             }
 
             break;

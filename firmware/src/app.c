@@ -618,7 +618,7 @@ void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
         send_reported_property(&twin_properties);
     }
 
-    debug_printInfo("  APP: << %s() rc = 0x%08x", __FUNCTION__, rc);
+//    debug_printInfo("  APP: << %s() rc = 0x%08x", __FUNCTION__, rc);
 }
 
 

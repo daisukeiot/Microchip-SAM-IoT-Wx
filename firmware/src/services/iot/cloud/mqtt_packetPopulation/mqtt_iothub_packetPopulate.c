@@ -94,7 +94,7 @@ void MQTT_CLIENT_iothub_publish(uint8_t* topic, uint8_t* payload, uint16_t paylo
         packet_id = ++packet_identifier;
     }
 
-    debug_printGood("  HUB: PUBLISH with ID %d", packet_identifier);
+    //debug_printGood("  HUB: PUBLISH with ID %d", packet_identifier);
 
     mqttPublishPacket cloudPublishPacket;
     // Fixed header
@@ -128,17 +128,21 @@ void MQTT_CLIENT_iothub_receive(uint8_t* data, uint16_t len)
 
     if (mqtt_data->controlPacketType == PUBACK)
     {
+#ifdef DEBUG_PUBACK
         mqttPubackPacket* mqtt_puback = (mqttPubackPacket*)data;
         uint16_t          identifier  = mqtt_puback->packetIdentifierLSB << 8 | mqtt_puback->packetIdentifierMSB;
 
         debug_printGood("  HUB: Received PUBACK for Packet ID %d", identifier);
+#endif
     }
     MQTT_GetReceivedData(data, len);
 }
 
 void MQTT_CLIENT_iothub_puback_callback(mqttPubackPacket* data)
 {
-    //debug_printGood("  HUB: %s() Packet %d", __FUNCTION__, (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
+#ifdef DEBUG_PUBACK
+    debug_printGood("  HUB: %s() Packet %d", __FUNCTION__, (uint16_t)(data->packetIdentifierMSB << 8 | data->packetIdentifierLSB));
+#endif
     return;
 }
 

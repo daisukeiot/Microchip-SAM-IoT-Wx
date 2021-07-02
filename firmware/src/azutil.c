@@ -716,7 +716,7 @@ az_result process_device_twin_property(
     {
         // debug_printInfo("AZURE: Property Topic  : %s", az_span_ptr(property_topic_span));
         // debug_printInfo("AZURE: Property Type   : %d", property_response.response_type);
-        debug_printInfo("AZURE: Property Payload: %s", (char*)payload);
+        // debug_printInfo("AZURE: Property Payload: %s", (char*)payload);
     }
     else
     {
