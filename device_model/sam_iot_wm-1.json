@@ -71,40 +71,7 @@
       "description": {
         "en": "Returns current state of the Blue LED. If True, the Blue LED is on and the WiFi AP is connected."
       },
-      "schema": {
-        "@id": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
-        "@type": "Enum",
-        "valueSchema": "integer",
-        "enumValues": [
-          {
-            "name": "On",
-            "displayName": {
-              "en": "LED On"
-            },
-            "enumValue": 1,
-            "description": "LED is turned on.",
-            "comment": "LED is in the On state."
-          },
-          {
-            "name": "Off",
-            "displayName": {
-              "en": "LED Off"
-            },
-            "enumValue": 2,
-            "description": "LED is turned Off.",
-            "comment": "LED is in the Off state."
-          },
-          {
-            "name": "Blink",
-            "displayName": {
-              "en": "LED Blinking"
-            },
-            "enumValue": 3,
-            "description": "LED is blinking.",
-            "comment": "LED is blinking."
-          }
-        ]
-      },
+      "schema": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
       "writable": false
     },
     {
@@ -118,40 +85,7 @@
       "description": {
         "en": "The current state of the Green LED. When it is on, SAM IoT is connected to Cloud."
       },
-      "schema": {
-        "@id": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
-        "@type": "Enum",
-        "valueSchema": "integer",
-        "enumValues": [
-          {
-            "name": "On",
-            "displayName": {
-              "en": "LED On"
-            },
-            "enumValue": 1,
-            "description": "LED is turned on.",
-            "comment": "LED is in the On state."
-          },
-          {
-            "name": "Off",
-            "displayName": {
-              "en": "LED Off"
-            },
-            "enumValue": 2,
-            "description": "LED is turned Off.",
-            "comment": "LED is in the Off state."
-          },
-          {
-            "name": "Blink",
-            "displayName": {
-              "en": "LED Blinking"
-            },
-            "enumValue": 3,
-            "description": "LED is blinking.",
-            "comment": "LED is blinking."
-          }
-        ]
-      },
+      "schema": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
       "writable": false
     },
     {
@@ -166,16 +100,15 @@
         "en": "The current state of the Red LED. When it is on or blinking, SAM IoT experienced error(s)."
       },
       "schema": {
-        "@id": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
         "@type": "Enum",
-        "valueSchema": "integer",
+        "valueSchema": "string",
         "enumValues": [
           {
             "name": "On",
             "displayName": {
               "en": "LED On"
             },
-            "enumValue": 1,
+            "enumValue": "On",
             "description": "LED is turned on.",
             "comment": "LED is in the On state."
           },
@@ -184,7 +117,7 @@
             "displayName": {
               "en": "LED Off"
             },
-            "enumValue": 2,
+            "enumValue": "Off",
             "description": "LED is turned Off.",
             "comment": "LED is in the Off state."
           },
@@ -193,7 +126,7 @@
             "displayName": {
               "en": "LED Blinking"
             },
-            "enumValue": 3,
+            "enumValue": "Blink",
             "description": "LED is blinking.",
             "comment": "LED is blinking."
           }
@@ -212,40 +145,7 @@
       "description": {
         "en": "Set the state of the Yellow LED.  On, off, or blink."
       },
-      "schema": {
-        "@id": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
-        "@type": "Enum",
-        "valueSchema": "integer",
-        "enumValues": [
-          {
-            "name": "On",
-            "displayName": {
-              "en": "LED On"
-            },
-            "enumValue": 1,
-            "description": "LED is turned on.",
-            "comment": "LED is in the On state."
-          },
-          {
-            "name": "Off",
-            "displayName": {
-              "en": "LED Off"
-            },
-            "enumValue": 2,
-            "description": "LED is turned Off.",
-            "comment": "LED is in the Off state."
-          },
-          {
-            "name": "Blink",
-            "displayName": {
-              "en": "LED Blinking"
-            },
-            "enumValue": 3,
-            "description": "LED is blinking.",
-            "comment": "LED is blinking."
-          }
-        ]
-      },
+      "schema": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
       "writable": true
     },
     {
@@ -300,7 +200,7 @@
       }
     }
   ],
-  "$schemas": [
+  "schemas": [
     {
       "@id": "dtmi:com:Microchip:SAM_IoT_WM:LedState;1",
       "@type": "Enum",
