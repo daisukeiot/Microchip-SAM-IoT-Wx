@@ -36,18 +36,9 @@ extern az_span           device_id_span;
 extern az_iot_pnp_client pnp_client;
 extern char              mqtt_username_buffer[203 + 1];
 
-typedef enum
-{
-    /* Application's state machine's initial state. */
-    QOS_PNP_NONE = 0,
-    QOS_PNP_PROPERTY,
-    QOS_PNP_TELEMETRY,
-    QOS_PNP_COMMAND
-} QOS_TYPE;
-
 typedef struct
 {
-    void (*MQTT_CLIENT_publish)(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos);
+    void (*MQTT_CLIENT_publish)(uint8_t* topic, uint8_t* payload, uint16_t payload_len, int qos);
     void (*MQTT_CLIENT_receive)(uint8_t* data, uint16_t len);
     void (*MQTT_CLIENT_connect)(char* device_id);
     bool (*MQTT_CLIENT_subscribe)();

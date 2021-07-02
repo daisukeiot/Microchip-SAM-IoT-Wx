@@ -209,7 +209,7 @@ typedef struct
  *
  * This is used by the application to form and process a PUBLISH packet. 
  */
-typedef struct
+typedef struct _mqttPublishPacket
 {
     // Fixed header
     mqttHeaderFlags publishHeaderFlags;
@@ -228,6 +228,8 @@ typedef struct
     uint8_t* payload;
 
     uint16_t totalLength;
+
+    struct _mqttPublishPacket *next;
 } mqttPublishPacket;
 
 /** \brief MQTT PUBACK packet

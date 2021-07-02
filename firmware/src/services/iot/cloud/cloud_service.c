@@ -358,8 +358,6 @@ void CLOUD_task(void)
     mqttContext*  mqttConnnectionInfo = MQTT_GetClientConnectionInfo();
     socketState_t socketState         = BSD_GetSocketState(*mqttConnnectionInfo->tcpClientSocket);
 
-    //debug_printError("!!! %d", socketState);
-
     // typedef enum
     // {
     // 	NOT_A_SOCKET = 0,           // This is not a socket
@@ -523,7 +521,7 @@ bool CLOUD_isConnected(void)
     }
 }
 
-void CLOUD_publishData(uint8_t* topic, uint8_t* payload, uint16_t payload_len, QOS_TYPE qos)
+void CLOUD_publishData(uint8_t* topic, uint8_t* payload, uint16_t payload_len, int qos)
 {
     pf_mqtt_client->MQTT_CLIENT_publish(topic, payload, payload_len, qos);
 }

@@ -1,8 +1,5 @@
 #include "azutil.h"
 
-#define DISABLE_TELEMETRY
-//#define DISABLE_PROPERTY
-
 extern az_iot_pnp_client pnp_client;
 extern volatile uint32_t telemetryInterval;
 
@@ -11,8 +8,6 @@ extern led_status_t led_status;
 
 extern uint16_t packet_identifier;
 
-extern OSAL_MUTEX_HANDLE_TYPE publish_mutex;
-
 static char pnp_telemetry_topic_buffer[128];
 static char pnp_telemetry_payload_buffer[128];
 
@@ -20,7 +15,11 @@ static char pnp_property_topic_buffer[128];
 static char pnp_property_payload_buffer[256];
 
 static char pnp_command_topic_buffer[128];
-static char pnp_command_response_buffer[128];
+static char pnp_command_resp_buffer[256];
+
+// Plug and Play Connection Values
+static uint32_t request_id_int = 0;
+static char     request_id_buffer[16];
 
 // IoT Plug and Play properties
 
@@ -55,15 +54,15 @@ static const az_span led_off_string_span   = AZ_SPAN_LITERAL_FROM_STR("Off");
 static const az_span led_blink_string_span = AZ_SPAN_LITERAL_FROM_STR("Blink");
 
 // Command
-static const az_span command_error_span               = AZ_SPAN_LITERAL_FROM_STR("Error");
-static const az_span command_success_span             = AZ_SPAN_LITERAL_FROM_STR("success");
-static const az_span command_name_reboot_span         = AZ_SPAN_LITERAL_FROM_STR("reboot");
-static const az_span command_err_payload_missing_span = AZ_SPAN_LITERAL_FROM_STR("Delay time not found. Specify 'delay' in period format (PT5S for 5 sec)");
-static const az_span command_err_not_supported_span   = AZ_SPAN_LITERAL_FROM_STR("{\"Status\":\"Unsupported Command\"}");
-static const az_span command_status_span              = AZ_SPAN_LITERAL_FROM_STR("status");
-static const az_span command_reboot_delay_span        = AZ_SPAN_LITERAL_FROM_STR("delay");
-
-static int reboot_delay_seconds = 0;
+static const az_span command_name_reboot_span          = AZ_SPAN_LITERAL_FROM_STR("reboot");
+static const az_span command_reboot_delay_payload_span = AZ_SPAN_LITERAL_FROM_STR("delay");
+static const az_span command_status_span               = AZ_SPAN_LITERAL_FROM_STR("status");
+static const az_span command_resp_success_span         = AZ_SPAN_LITERAL_FROM_STR("Success");
+static const az_span command_resp_missing_payload_span = AZ_SPAN_LITERAL_FROM_STR("Delay time not found. Specify 'delay' in period format (PT5S for 5 sec)");
+static const az_span command_resp_empty_payload_span   = AZ_SPAN_LITERAL_FROM_STR("Delay time is empty. Specify 'delay' in period format (PT5S for 5 sec)");
+static const az_span command_resp_bad_payload_span     = AZ_SPAN_LITERAL_FROM_STR("Delay time in wrong format. Specify 'delay' in period format (PT5S for 5 sec)");
+static const az_span command_resp_erro_processing_span = AZ_SPAN_LITERAL_FROM_STR("Error processing command");
+static const az_span command_resp_not_supported_span   = AZ_SPAN_LITERAL_FROM_STR("{\"Status\":\"Unsupported Command\"}");
 
 static SYS_TIME_HANDLE reboot_task_handle = SYS_TIME_HANDLE_INVALID;
 
@@ -144,19 +143,24 @@ static az_result append_reported_property_response_int32(
     int32_t         ack_version,
     az_span         ack_description_span)
 {
-    //	RETURN_ERR_IF_FAILED(az_json_writer_append_begin_object(jw));
-    RETURN_ERR_IF_FAILED(az_iot_pnp_client_property_builder_begin_reported_status(
-        &pnp_client, jw, property_name_span, ack_code, ack_version, ack_description_span));
+    RETURN_ERR_IF_FAILED(az_iot_pnp_client_property_builder_begin_reported_status(&pnp_client,
+                                                                                  jw,
+                                                                                  property_name_span,
+                                                                                  ack_code,
+                                                                                  ack_version,
+                                                                                  ack_description_span));
     RETURN_ERR_IF_FAILED(az_json_writer_append_int32(jw, property_val));
     RETURN_ERR_IF_FAILED(az_iot_pnp_client_property_builder_end_reported_status(&pnp_client, jw));
-    //	RETURN_ERR_IF_FAILED(az_json_writer_append_end_object(jw));
     return AZ_OK;
 }
 
 /**********************************************
 * Build sensor telemetry JSON
 **********************************************/
-az_result build_sensor_telemetry_message(az_span* out_payload_span, int32_t temperature, int32_t light)
+az_result build_sensor_telemetry_message(
+    az_span* out_payload_span,
+    int32_t  temperature,
+    int32_t  light)
 {
     az_json_writer jw;
     memset(&pnp_telemetry_payload_buffer, 0, sizeof(pnp_telemetry_payload_buffer));
@@ -169,18 +173,52 @@ az_result build_sensor_telemetry_message(az_span* out_payload_span, int32_t temp
 }
 
 /**********************************************
-* Create JSON document for error response
+* Create JSON document for command error response
+* e.g.
+* {
+*   "status":500,
+*     "payload":{
+*       "Status":"Unsupported Command"
+*     }
+* }
 **********************************************/
-static az_result build_error_response_payload(
+static az_result build_command_error_response_payload(
     az_span  response_span,
-    az_span  error_string_span,
+    az_span  status_string_span,
+    az_span* response_payload_span)
+{
+    az_json_writer jw;
+
+    // Build the command response payload with error status
+    RETURN_ERR_IF_FAILED(start_json_object(&jw, response_span));
+    RETURN_ERR_IF_FAILED(append_jason_property_string(&jw, command_status_span, status_string_span));
+    RETURN_ERR_IF_FAILED(end_json_object(&jw));
+    *response_payload_span = az_json_writer_get_bytes_used_in_destination(&jw);
+    return AZ_OK;
+}
+
+/**********************************************
+* Create JSON document for command response with status message
+* e.g.
+* {
+*   "status":200,
+*   "payload":{
+*     "status":"Success",
+*     "delay":100
+*   }
+* }
+**********************************************/
+static az_result build_command_resp_payload(
+    az_span  response_span,
+    int      reboot_delay,
     az_span* response_payload_span)
 {
     az_json_writer jw;
 
     // Build the command response payload
     RETURN_ERR_IF_FAILED(start_json_object(&jw, response_span));
-    RETURN_ERR_IF_FAILED(append_jason_property_string(&jw, command_error_span, error_string_span));
+    RETURN_ERR_IF_FAILED(append_jason_property_string(&jw, command_status_span, command_resp_success_span));
+    RETURN_ERR_IF_FAILED(append_json_property_int32(&jw, command_reboot_delay_payload_span, reboot_delay));
     RETURN_ERR_IF_FAILED(end_json_object(&jw));
     *response_payload_span = az_json_writer_get_bytes_used_in_destination(&jw);
     return AZ_OK;
@@ -212,6 +250,7 @@ static az_result append_button_press_telemetry(
 
 /**********************************************
 * Check if button(s) was pressed.
+* If yes, send event to IoT Hub.
 **********************************************/
 void check_button_status(void)
 {
@@ -259,9 +298,10 @@ void check_button_status(void)
 
     if (!az_result_failed(rc))
     {
-        //#ifndef DISABLE_TELEMETRY
-        CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer, az_span_ptr(button_event_payload_span), az_span_size(button_event_payload_span), QOS_PNP_TELEMETRY);
-        //#endif
+        CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer,
+                          az_span_ptr(button_event_payload_span),
+                          az_span_size(button_event_payload_span),
+                          1);
     }
     return;
 }
@@ -283,25 +323,26 @@ az_result send_telemetry_message(void)
         build_sensor_telemetry_message(&telemetry_payload_span, temp, light),
         "Failed to build sensor telemetry JSON payload");
 
-    rc = az_iot_pnp_client_telemetry_get_publish_topic(
-        &pnp_client,
-        AZ_SPAN_EMPTY,
-        NULL,
-        pnp_telemetry_topic_buffer,
-        sizeof(pnp_telemetry_topic_buffer),
-        NULL);
+    rc = az_iot_pnp_client_telemetry_get_publish_topic(&pnp_client,
+                                                       AZ_SPAN_EMPTY,
+                                                       NULL,
+                                                       pnp_telemetry_topic_buffer,
+                                                       sizeof(pnp_telemetry_topic_buffer),
+                                                       NULL);
 
     if (!az_result_failed(rc))
     {
-#ifndef DISABLE_TELEMETRY
-        CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer, az_span_ptr(telemetry_payload_span), az_span_size(telemetry_payload_span), QOS_PNP_TELEMETRY);
-#endif
+        CLOUD_publishData((uint8_t*)pnp_telemetry_topic_buffer,
+                          az_span_ptr(telemetry_payload_span),
+                          az_span_size(telemetry_payload_span),
+                          1);
     }
     return rc;
 }
 
 /**********************************************
 * Check if LED status has changed or not.
+* If any LED status has changed, update Device Twin
 **********************************************/
 void check_led_status(twin_properties_t* twin_properties)
 {
@@ -395,7 +436,8 @@ void check_led_status(twin_properties_t* twin_properties)
 }
 
 /**********************************************
-*	Process LED Update/Patch
+* Process LED Update/Patch
+* Sets Yellow LED based on Device Twin from IoT Hub
 **********************************************/
 void update_leds(
     twin_properties_t* twin_properties)
@@ -435,17 +477,21 @@ static int send_command_response(
 {
     // Get the response topic to publish the command response
     int rc = az_iot_pnp_client_commands_response_get_publish_topic(
-        &pnp_client, request->request_id, status, pnp_command_topic_buffer,
-        sizeof(pnp_command_topic_buffer), NULL);
+        &pnp_client,
+        request->request_id,
+        status,
+        pnp_command_topic_buffer,
+        sizeof(pnp_command_topic_buffer),
+        NULL);
+
     RETURN_ERR_WITH_MESSAGE_IF_FAILED(rc, "AZURE: Unable to get command response publish topic");
 
     debug_printInfo("AZURE: Command Status: %u", status);
 
-    // Send the commands response
-    // if ((rc = mqtt_publish_message(pnp_command_topic_buffer, response, 0)) == 0)
-    // {
-    //     debug_printInfo("Sent command response");
-    // }
+    CLOUD_publishData((uint8_t*)pnp_command_topic_buffer,
+                      az_span_ptr(response),
+                      az_span_size(response),
+                      1);
 
     return rc;
 }
@@ -460,90 +506,144 @@ void reboot_task_callback(uintptr_t context)
 *	Handle reboot command
 **********************************************/
 static az_result process_reboot_command(
-    az_span  payload_span,
-    az_span  response_span,
-    az_span* out_response_span)
+    az_span   payload_span,
+    az_span   response_span,
+    az_span*  out_response_span,
+    uint16_t* out_response_status)
 {
-    char           reboot_delay[32];
-    az_json_writer jw;
+    az_result      ret              = AZ_OK;
+    char           reboot_delay[32] = {0};
     az_json_reader jr;
+    *out_response_status = AZ_HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR;
 
     debug_printInfo("AZURE: %s() : Payload %s", __func__, az_span_ptr(payload_span));
 
-    if (az_span_size(payload_span) == 0 || (az_span_size(payload_span) == 2 && az_span_is_content_equal(empty_payload_span, payload_span)))
+    if (az_span_size(payload_span) == 0 ||
+        (az_span_size(payload_span) == 2 && az_span_is_content_equal(empty_payload_span, payload_span)))
     {
-        RETURN_ERR_IF_FAILED(build_error_response_payload(response_span, command_err_payload_missing_span, out_response_span));
-        return AZ_ERROR_ITEM_NOT_FOUND;
+
+        ret = build_command_error_response_payload(response_span,
+                                                   command_resp_missing_payload_span,
+                                                   out_response_span);
+
+        *out_response_status = AZ_HTTP_STATUS_CODE_BAD_REQUEST;
     }
-
-    RETURN_ERR_IF_FAILED(az_json_reader_init(&jr, payload_span, NULL));
-
-    while (jr.token.kind != AZ_JSON_TOKEN_END_OBJECT)
+    else
     {
-        if (jr.token.kind == AZ_JSON_TOKEN_PROPERTY_NAME)
+        RETURN_ERR_IF_FAILED(az_json_reader_init(&jr, payload_span, NULL));
+
+        while (jr.token.kind != AZ_JSON_TOKEN_END_OBJECT)
         {
-            if (az_json_token_is_text_equal(&jr.token, command_reboot_delay_span))
+            if (jr.token.kind == AZ_JSON_TOKEN_PROPERTY_NAME)
             {
-                RETURN_ERR_IF_FAILED(az_json_reader_next_token(&jr));
-                RETURN_ERR_IF_FAILED(az_json_token_get_string(&jr.token, reboot_delay, sizeof(reboot_delay), NULL));
+                if (az_json_token_is_text_equal(&jr.token, command_reboot_delay_payload_span))
+                {
+                    debug_printInfo("AZURE: Found 'delay'");
+                    if (az_result_failed(ret = az_json_reader_next_token(&jr)))
+                    {
+                        debug_printError("AZURE: Error getting next token");
+                        break;
+                    }
+                    else if (az_result_failed(ret = az_json_token_get_string(&jr.token, reboot_delay, sizeof(reboot_delay), NULL)))
+                    {
+                        debug_printError("AZURE: Error getting string");
+                        break;
+                    }
+
+                    break;
+                }
+            }
+            else if (jr.token.kind == AZ_JSON_TOKEN_STRING)
+            {
+                if (az_result_failed(ret = az_json_token_get_string(&jr.token, reboot_delay, sizeof(reboot_delay), NULL)))
+                {
+                    debug_printError("AZURE: Error getting string");
+                    break;
+                }
+                break;
+            }
+
+            if (az_result_failed(ret = az_json_reader_next_token(&jr)))
+            {
+                debug_printError("AZURE: Error getting next token");
                 break;
             }
         }
-        else if (jr.token.kind == AZ_JSON_TOKEN_STRING)
+
+        if (strlen(reboot_delay) == 0)
         {
-            RETURN_ERR_IF_FAILED(az_json_token_get_string(&jr.token, reboot_delay, sizeof(reboot_delay), NULL));
-            break;
+            debug_printError("AZURE: Reboot Delay not found");
+
+            ret = build_command_error_response_payload(response_span,
+                                                       command_resp_empty_payload_span,
+                                                       out_response_span);
+
+            *out_response_status = AZ_HTTP_STATUS_CODE_BAD_REQUEST;
         }
-        RETURN_ERR_IF_FAILED(az_json_reader_next_token(&jr));
+        else if (reboot_delay[0] != 'P' || reboot_delay[1] != 'T' || reboot_delay[strlen(reboot_delay) - 1] != 'S')
+        {
+            debug_printError("AZURE: Reboot Delay wrong format");
+
+            ret = build_command_error_response_payload(response_span,
+                                                       command_resp_bad_payload_span,
+                                                       out_response_span);
+
+            *out_response_status = AZ_HTTP_STATUS_CODE_BAD_REQUEST;
+        }
+        else
+        {
+            int reboot_delay_seconds = atoi((const char*)&reboot_delay[2]);
+
+            RETURN_ERR_IF_FAILED(build_command_resp_payload(response_span,
+                                                            reboot_delay_seconds,
+                                                            out_response_span));
+
+            *out_response_status = AZ_HTTP_STATUS_CODE_ACCEPTED;
+
+            debug_printInfo("AZURE: Scheduling reboot in %d sec", reboot_delay_seconds);
+
+            reboot_task_handle = SYS_TIME_CallbackRegisterMS(reboot_task_callback,
+                                                             0,
+                                                             reboot_delay_seconds * 1000,
+                                                             SYS_TIME_SINGLE);
+
+            if (reboot_task_handle == SYS_TIME_HANDLE_INVALID)
+            {
+                debug_printError("AZURE: Failed to schedule reboot timer");
+            }
+        }
     }
 
-    if (reboot_delay[0] != 'P' || reboot_delay[1] != 'T' || reboot_delay[strlen(reboot_delay) - 1] != 'S')
-    {
-        debug_printError("AZURE: Reboot Delay wrong format");
-        RETURN_ERR_IF_FAILED(build_error_response_payload(response_span, command_err_payload_missing_span, out_response_span));
-        return AZ_ERROR_ARG;
-    }
-
-    reboot_delay_seconds = atoi((const char*)&reboot_delay[2]);
-
-    debug_printInfo("AZURE: Setting reboot delay for %d sec", reboot_delay_seconds);
-    reboot_task_handle = SYS_TIME_CallbackRegisterMS(reboot_task_callback, 0, reboot_delay_seconds * 1000, SYS_TIME_SINGLE);
-
-    start_json_object(&jw, response_span);
-    append_jason_property_string(&jw, command_status_span, command_success_span);
-    append_json_property_int32(&jw, command_reboot_delay_span, reboot_delay_seconds);
-    end_json_object(&jw);
-
-    *out_response_span = az_json_writer_get_bytes_used_in_destination(&jw);
-
-    return AZ_OK;
+    return ret;
 }
 
 /**********************************************
-* Parse Desired Property (Writable Property)
+* Process Command
 **********************************************/
 az_result process_direct_method_command(
     uint8_t*                           payload,
     az_iot_pnp_client_command_request* command_request)
 {
-    az_result rc                    = AZ_OK;
-    uint16_t  response_status       = 404;   // assume error
-    az_span   command_response_span = AZ_SPAN_FROM_BUFFER(pnp_command_response_buffer);
-    az_span   payload_span          = az_span_create_from_str((char*)payload);
+    az_result rc                = AZ_OK;
+    uint16_t  response_status   = AZ_HTTP_STATUS_CODE_BAD_REQUEST;   // assume error
+    az_span   command_resp_span = AZ_SPAN_FROM_BUFFER(pnp_command_resp_buffer);
+    az_span   payload_span      = az_span_create_from_str((char*)payload);
 
     debug_printInfo("AZURE: Processing Command '%s'", command_request->command_name);
 
     if (az_span_is_content_equal(command_name_reboot_span, command_request->command_name))
     {
-        rc = process_reboot_command(payload_span, command_response_span, &command_response_span);
+        rc = process_reboot_command(payload_span, command_resp_span, &command_resp_span, &response_status);
 
         if (az_result_failed(rc))
         {
             debug_printError("AZURE: Failed process_reboot_command, status 0x%08x", rc);
-            if (az_span_size(command_response_span) == 0)
+            if (az_span_size(command_resp_span) == 0)
             {
                 // if response is empty, payload was not in the right format.
-                if (az_result_failed(rc = build_error_response_payload(command_response_span, command_err_payload_missing_span, &command_response_span)))
+                if (az_result_failed(rc = build_command_error_response_payload(command_resp_span,
+                                                                               command_resp_erro_processing_span,
+                                                                               &command_resp_span)))
                 {
                     debug_printError("AZURE: Fail build error response. (0x%08x)", rc);
                 }
@@ -552,13 +652,21 @@ az_result process_direct_method_command(
     }
     else
     {
+        rc = AZ_ERROR_NOT_SUPPORTED;
         // Unsupported command
         debug_printError("AZURE: Unsupported command received: %s.", az_span_ptr(command_request->command_name));
-
-        if ((rc = send_command_response(command_request, response_status, command_err_not_supported_span)) != 0)
+        // if response is empty, payload was not in the right format.
+        if (az_result_failed(rc = build_command_error_response_payload(command_resp_span,
+                                                                       command_resp_not_supported_span,
+                                                                       &command_resp_span)))
         {
-            debug_printError("AZURE: Unable to send %d response, status %d", response_status, rc);
+            debug_printError("AZURE: Fail build error response. (0x%08x)", rc);
         }
+    }
+
+    if ((rc = send_command_response(command_request, response_status, command_resp_span)) != 0)
+    {
+        debug_printError("AZURE: Unable to send %d response, status %d", response_status, rc);
     }
 
     return rc;
@@ -572,6 +680,16 @@ az_result process_direct_method_command(
 
 /**********************************************
 * Parse Desired Property (Writable Property)
+* Respond by updating Reported Property with IoT Plug and Play convention
+* https://docs.microsoft.com/en-us/azure/iot-pnp/concepts-convention#writable-properties
+* e.g.
+* "reported": {
+*   "telemetryInterval": {
+*     "ac": 200,
+*     "av": 13,
+*     "ad": "Success",
+*     "value": 60
+* }
 **********************************************/
 az_result process_device_twin_property(
     uint8_t*           topic,
@@ -596,8 +714,8 @@ az_result process_device_twin_property(
 
     if (az_result_succeeded(rc))
     {
-        debug_printInfo("AZURE: Property Topic  : %s", az_span_ptr(property_topic_span));
-        debug_printInfo("AZURE: Property Type   : %d", property_response.response_type);
+        // debug_printInfo("AZURE: Property Topic  : %s", az_span_ptr(property_topic_span));
+        // debug_printInfo("AZURE: Property Type   : %d", property_response.response_type);
         debug_printInfo("AZURE: Property Payload: %s", (char*)payload);
     }
     else
@@ -609,11 +727,14 @@ az_result process_device_twin_property(
 
     if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_GET)
     {
-        debug_printWarn("AZURE: Property GET");
         if (az_span_is_content_equal_ignoring_case(property_response.request_id, twin_request_id_span))
         {
             debug_printGood("AZURE: INITIAL GET");
             twin_properties->flag.isInitialGet = 1;
+        }
+        else
+        {
+            debug_printWarn("AZURE: Property GET");
         }
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_DESIRED_PROPERTIES)
@@ -636,7 +757,11 @@ az_result process_device_twin_property(
     }
     else
     {
-        debug_printWarn("AZURE: Type %d Status %d ID %s Version %s", property_response.response_type, property_response.status, az_span_ptr(property_response.request_id), az_span_ptr(property_response.version));
+        debug_printWarn("AZURE: Type %d Status %d ID %s Version %s",
+                        property_response.response_type,
+                        property_response.status,
+                        az_span_ptr(property_response.request_id),
+                        az_span_ptr(property_response.version));
     }
 
     rc = az_json_reader_init(&jr,
@@ -682,7 +807,8 @@ az_result process_device_twin_property(
                 {
                     // found writable property to control Yellow LED
                     RETURN_ERR_IF_FAILED(az_json_reader_next_token(&jr));
-                    RETURN_ERR_IF_FAILED(az_json_token_get_int32(&jr.token, &twin_properties->desired_led_yellow));
+                    RETURN_ERR_IF_FAILED(az_json_token_get_int32(&jr.token,
+                                                                 &twin_properties->desired_led_yellow));
                     twin_properties->flag.yellow_led_found = 1;
                 }
             }
@@ -714,6 +840,24 @@ int32_t get_led_value(unsigned short led_flag)
 }
 
 /**********************************************
+* Create AZ Span for Reported Property Request ID 
+**********************************************/
+static az_span get_request_id(void)
+{
+    az_span remainder;
+    az_span out_span = az_span_create((uint8_t*)request_id_buffer,
+                                      sizeof(request_id_buffer));
+
+    az_result rc = az_span_u32toa(out_span,
+                                  request_id_int++,
+                                  &remainder);
+
+    EXIT_WITH_MESSAGE_IF_FAILED(rc, "Failed to get request id");
+
+    return az_span_slice(out_span, 0, az_span_size(out_span) - az_span_size(remainder));
+}
+
+/**********************************************
 * Send Reported Property 
 **********************************************/
 az_result send_reported_property(
@@ -727,7 +871,7 @@ az_result send_reported_property(
     if (twin_properties->flag.AsUSHORT == 0)
     {
         // Nothing to do.
-        debug_printGood("AZURE: No property update");
+        // debug_printGood("AZURE: No property update");
         return AZ_OK;
     }
 
@@ -747,7 +891,7 @@ az_result send_reported_property(
                     &jw,
                     property_telemetry_interval_span,
                     telemetryInterval,
-                    200,
+                    AZ_HTTP_STATUS_CODE_OK,
                     twin_properties->version_num,
                     AZ_SPAN_FROM_STR("Success"))))
         {
@@ -762,7 +906,7 @@ az_result send_reported_property(
                     &jw,
                     property_telemetry_interval_span,
                     telemetryInterval,
-                    200,
+                    AZ_HTTP_STATUS_CODE_OK,
                     1,
                     AZ_SPAN_FROM_STR("Success"))))
         {
@@ -782,7 +926,7 @@ az_result send_reported_property(
                     &jw,
                     led_yellow_property_name_span,
                     led_property_value,
-                    200,
+                    AZ_HTTP_STATUS_CODE_OK,
                     twin_properties->version_num,
                     AZ_SPAN_FROM_STR("Success"))))
         {
@@ -799,7 +943,7 @@ az_result send_reported_property(
                     &jw,
                     led_yellow_property_name_span,
                     led_property_value,
-                    200,
+                    AZ_HTTP_STATUS_CODE_OK,
                     1,
                     AZ_SPAN_FROM_STR("Success"))))
         {
@@ -878,68 +1022,19 @@ az_result send_reported_property(
     az_span property_payload_span = az_json_writer_get_bytes_used_in_destination(&jw);
 
     // Publish the reported property payload to IoT Hub
-    //debug_printInfo("AZURE: Sending twin reported property : %s", az_span_ptr(property_payload_span));
+    identifier_span = get_request_id();
+    rc              = az_iot_pnp_client_property_patch_get_publish_topic(&pnp_client,
+                                                            identifier_span,
+                                                            pnp_property_topic_buffer,
+                                                            sizeof(pnp_property_topic_buffer),
+                                                            NULL);
+    RETURN_ERR_WITH_MESSAGE_IF_FAILED(rc, "AZURE:Failed to get property PATCH topic");
 
-    if (OSAL_RESULT_TRUE == MUTEX_Lock(&publish_mutex, OSAL_WAIT_FOREVER))
-    {
-        debug_printGood("AZURE: >> PUBLISH Mutex Locked - P");
-        identifier_span = get_publish_packet_id();
-        rc              = az_iot_pnp_client_property_patch_get_publish_topic(&pnp_client,
-                                                                identifier_span,
-                                                                pnp_property_topic_buffer,
-                                                                sizeof(pnp_property_topic_buffer),
-                                                                NULL);
-        RETURN_ERR_WITH_MESSAGE_IF_FAILED(rc, "AZURE:Failed to get property PATCH topic");
+    // Send the reported property
+    CLOUD_publishData((uint8_t*)pnp_property_topic_buffer,
+                      az_span_ptr(property_payload_span),
+                      az_span_size(property_payload_span),
+                      1);
 
-#ifndef DISABLE_PROPERTY
-        // Send the reported property
-        CLOUD_publishData((uint8_t*)pnp_property_topic_buffer, az_span_ptr(property_payload_span), az_span_size(property_payload_span), QOS_PNP_PROPERTY);
-#endif
-    }
     return rc;
-}
-
-/**********************************************
-* Acquire Mutex
-**********************************************/
-void MSDelay(uint32_t ms)
-{
-    SYS_TIME_HANDLE tmrHandle = SYS_TIME_HANDLE_INVALID;
-
-    if (SYS_TIME_SUCCESS != SYS_TIME_DelayMS(ms, &tmrHandle))
-    {
-        return;
-    }
-
-    while (true != SYS_TIME_DelayIsComplete(tmrHandle))
-    {
-        continue;
-    }
-}
-
-OSAL_RESULT MUTEX_Lock(OSAL_MUTEX_HANDLE_TYPE* mutexID, uint16_t waitMS)
-{
-    OSAL_RESULT result  = OSAL_RESULT_FALSE;
-    int32_t     counter = 0;
-    if (waitMS == OSAL_WAIT_FOREVER)
-    {
-        while (true)
-        {
-            result = OSAL_MUTEX_Lock(mutexID, waitMS);
-            if (result == OSAL_RESULT_TRUE)
-            {
-                debug_printWarn("Mutex held");
-                break;
-            }
-            MSDelay(200);
-            counter++;
-
-            if (counter > 100)
-            {
-                debug_printWarn("Mutex not held");
-                break;
-            }
-        }
-    }
-    return result;
 }

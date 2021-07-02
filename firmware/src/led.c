@@ -173,11 +173,47 @@ void LED_SetBlue(led_set_state_t newState)
         case LED_STATE_HOLD:
             if ((newState & LED_STATE_BLINK_FAST) != 0)
             {
-                blinkTimer_blue = SYS_TIME_CallbackRegisterMS(blink_task, LED_BLUE, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                if (blinkTimer_blue == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_blue = SYS_TIME_CallbackRegisterMS(blink_task, LED_BLUE, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                }
+                else
+                {
+                    SYS_TIME_RESULT result;
+                    result = SYS_TIME_TimerReload(blinkTimer_blue, 0, SYS_TIME_MSToCount(LED_100ms_INTERVAL), blink_task, LED_BLUE, SYS_TIME_PERIODIC);
+
+                    if (result != SYS_TIME_SUCCESS)
+                    {
+                        debug_printError("LED-B: Failed to reload timer");
+                        break;
+                    }
+                    else
+                    {
+                        SYS_TIME_TimerStart(blinkTimer_blue);
+                    }
+                }
             }
             else if ((newState & LED_STATE_BLINK_SLOW) != 0)
             {
-                blinkTimer_blue = SYS_TIME_CallbackRegisterMS(blink_task, LED_BLUE, LED_ON_INTERVAL, SYS_TIME_PERIODIC);
+                if (blinkTimer_blue == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_blue = SYS_TIME_CallbackRegisterMS(blink_task, LED_BLUE, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                }
+                else
+                {
+                    SYS_TIME_RESULT result;
+                    result = SYS_TIME_TimerReload(blinkTimer_blue, 0, SYS_TIME_MSToCount(LED_ON_INTERVAL), blink_task, LED_BLUE, SYS_TIME_PERIODIC);
+
+                    if (result != SYS_TIME_SUCCESS)
+                    {
+                        debug_printError("LED-B: Failed to reload timer");
+                        break;
+                    }
+                    else
+                    {
+                        SYS_TIME_TimerStart(blinkTimer_blue);
+                    }
+                }
             }
 
             break;
@@ -187,6 +223,7 @@ void LED_SetBlue(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_blue);
+                blinkTimer_blue = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -195,6 +232,7 @@ void LED_SetBlue(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_blue);
+                blinkTimer_blue = SYS_TIME_HANDLE_INVALID;
             }
 
             break;
@@ -236,9 +274,50 @@ void LED_SetGreen(led_set_state_t newState)
     {
         case LED_STATE_OFF:
         case LED_STATE_HOLD:
-            if ((newState & (LED_STATE_BLINK_FAST | LED_STATE_BLINK_SLOW)) != 0)
+
+            if ((newState & LED_STATE_BLINK_FAST) != 0)
             {
-                blinkTimer_green = SYS_TIME_CallbackRegisterMS(blink_task, LED_GREEN, LED_ON_INTERVAL, SYS_TIME_PERIODIC);
+                if (blinkTimer_green == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_green = SYS_TIME_CallbackRegisterMS(blink_task, LED_GREEN, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                }
+                else
+                {
+                    SYS_TIME_RESULT result;
+                    result = SYS_TIME_TimerReload(blinkTimer_green, 0, SYS_TIME_MSToCount(LED_100ms_INTERVAL), blink_task, LED_GREEN, SYS_TIME_PERIODIC);
+
+                    if (result != SYS_TIME_SUCCESS)
+                    {
+                        debug_printError("LED-G: Failed to reload timer");
+                        break;
+                    }
+                    else
+                    {
+                        SYS_TIME_TimerStart(blinkTimer_green);
+                    }
+                }
+            }
+            else if ((newState & LED_STATE_BLINK_SLOW) != 0)
+            {
+                if (blinkTimer_green == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_green = SYS_TIME_CallbackRegisterMS(blink_task, LED_GREEN, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                }
+                else
+                {
+                    SYS_TIME_RESULT result;
+                    result = SYS_TIME_TimerReload(blinkTimer_green, 0, SYS_TIME_MSToCount(LED_ON_INTERVAL), blink_task, LED_GREEN, SYS_TIME_PERIODIC);
+
+                    if (result != SYS_TIME_SUCCESS)
+                    {
+                        debug_printError("LED-G: Failed to reload timer");
+                        break;
+                    }
+                    else
+                    {
+                        SYS_TIME_TimerStart(blinkTimer_green);
+                    }
+                }
             }
 
             break;
@@ -248,6 +327,7 @@ void LED_SetGreen(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_green);
+                blinkTimer_green = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -256,6 +336,7 @@ void LED_SetGreen(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_green);
+                blinkTimer_green = SYS_TIME_HANDLE_INVALID;
             }
 
             break;
@@ -299,26 +380,31 @@ void LED_SetYellow(led_set_state_t newState)
         case LED_STATE_HOLD:
             if ((newState & (LED_STATE_BLINK_FAST | LED_STATE_BLINK_SLOW)) != 0)
             {
-                blinkTimer_yellow = SYS_TIME_CallbackRegisterMS(blink_task, LED_YELLOW, LED_ON_INTERVAL, SYS_TIME_PERIODIC);
+                if (blinkTimer_yellow == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_yellow = SYS_TIME_CallbackRegisterMS(blink_task, LED_YELLOW, LED_ON_INTERVAL, SYS_TIME_PERIODIC);
+                }
+
+                if (blinkTimer_yellow == SYS_TIME_HANDLE_INVALID)
+                {
+                    debug_printError("LED-Y: Failed to create timer");
+                }
+                else
+                {
+                    SYS_TIME_TimerStart(blinkTimer_yellow);
+                }
             }
 
             break;
 
         case LED_STATE_BLINK_FAST:
-
-            if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
-            {
-                SYS_TIME_TimerStop(blinkTimer_yellow);
-            }
-            break;
-
         case LED_STATE_BLINK_SLOW:
 
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_yellow);
+                blinkTimer_yellow = SYS_TIME_HANDLE_INVALID;
             }
-
             break;
 
         default:
@@ -358,9 +444,50 @@ void LED_SetRed(led_set_state_t newState)
     {
         case LED_STATE_OFF:
         case LED_STATE_HOLD:
-            if ((newState & (LED_STATE_BLINK_FAST | LED_STATE_BLINK_SLOW)) != 0)
+
+            if ((newState & LED_STATE_BLINK_FAST) != 0)
             {
-                blinkTimer_red = SYS_TIME_CallbackRegisterMS(blink_task, LED_RED, LED_ON_INTERVAL, SYS_TIME_PERIODIC);
+                if (blinkTimer_red == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_red = SYS_TIME_CallbackRegisterMS(blink_task, LED_RED, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                }
+                else
+                {
+                    SYS_TIME_RESULT result;
+                    result = SYS_TIME_TimerReload(blinkTimer_red, 0, SYS_TIME_MSToCount(LED_100ms_INTERVAL), blink_task, LED_RED, SYS_TIME_PERIODIC);
+
+                    if (result != SYS_TIME_SUCCESS)
+                    {
+                        debug_printError("LED-R: Failed to reload timer");
+                        break;
+                    }
+                    else
+                    {
+                        SYS_TIME_TimerStart(blinkTimer_red);
+                    }
+                }
+            }
+            else if ((newState & LED_STATE_BLINK_SLOW) != 0)
+            {
+                if (blinkTimer_red == SYS_TIME_HANDLE_INVALID)
+                {
+                    blinkTimer_red = SYS_TIME_CallbackRegisterMS(blink_task, LED_RED, LED_100ms_INTERVAL, SYS_TIME_PERIODIC);
+                }
+                else
+                {
+                    SYS_TIME_RESULT result;
+                    result = SYS_TIME_TimerReload(blinkTimer_red, 0, SYS_TIME_MSToCount(LED_ON_INTERVAL), blink_task, LED_RED, SYS_TIME_PERIODIC);
+
+                    if (result != SYS_TIME_SUCCESS)
+                    {
+                        debug_printError("LED-R: Failed to reload timer");
+                        break;
+                    }
+                    else
+                    {
+                        SYS_TIME_TimerStart(blinkTimer_red);
+                    }
+                }
             }
 
             break;
@@ -370,6 +497,7 @@ void LED_SetRed(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_red);
+                blinkTimer_red = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -378,6 +506,7 @@ void LED_SetRed(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_red);
+                blinkTimer_red = SYS_TIME_HANDLE_INVALID;
             }
 
             break;
@@ -401,7 +530,6 @@ void LED_SetRed(led_set_state_t newState)
 
 void LED_SetWiFi(led_indicator_name_t state)
 {
-    debug_printGood("WIFI LED %d", state);
     switch (state)
     {
         case LED_INDICATOR_OFF:
