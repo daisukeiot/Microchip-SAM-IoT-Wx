@@ -563,11 +563,11 @@ void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
     az_result                         rc;
     az_iot_pnp_client_command_request command_request;
 
-    debug_printInfo("  APP: >> %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
+    debug_printInfo("  APP: %s() Topic %s Payload %s", __FUNCTION__, topic, payload);
 
     if (topic == NULL)
     {
-        debug_printWarn("  APP: Command topic empty");
+        debug_printError("  APP: Command topic empty");
         return;
     }
 
@@ -601,7 +601,7 @@ void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
 
     twin_properties.flag.isInitialGet = 0;
 
-    debug_printInfo("  APP: >> %s() Payload %s", __FUNCTION__, payload);
+    debug_printInfo("  APP: %s() Payload %s", __FUNCTION__, payload);
 
     if (az_result_failed(rc = process_device_twin_property(topic, payload, &twin_properties)))
     {
@@ -624,8 +624,6 @@ void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
         update_leds(&twin_properties);
         send_reported_property(&twin_properties);
     }
-
-//    debug_printInfo("  APP: << %s() rc = 0x%08x", __FUNCTION__, rc);
 }
 
 
@@ -642,7 +640,7 @@ void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload)
         return;
     }
 
-    debug_printTrace("  APP: >> %s() Payload %s", __FUNCTION__, payload);
+    debug_printTrace("  APP: %s() Payload %s", __FUNCTION__, payload);
 
     if (az_result_failed(rc = process_device_twin_property(topic, payload, &twin_properties)))
     {
@@ -775,7 +773,7 @@ void iot_connection_completed(void)
 #ifdef CFG_MQTT_PROVISIONING_HOST
 void iot_provisioning_completed(void)
 {
-    debug_printInfo("  APP: %s()", __FUNCTION__);
+    debug_printGood("  APP: %s()", __FUNCTION__);
     pf_mqtt_iothub_client.MQTT_CLIENT_task_completed = iot_connection_completed;
     CLOUD_init_host(hub_hostname, attDeviceID, &pf_mqtt_iothub_client);
     CLOUD_reset();

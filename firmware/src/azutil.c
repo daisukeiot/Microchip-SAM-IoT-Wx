@@ -274,13 +274,13 @@ void check_button_status(void)
 
     if (sw0_pressed == true)
     {
-        debug_printGood("AZURE: Button SW0 Count %lu", button_press_data.sw0_press_count);
+        debug_printInfo("AZURE: Button SW0 Count %lu", button_press_data.sw0_press_count);
         RETURN_IF_FAILED(append_button_press_telemetry(&jw, event_name_button_sw0_span, button_press_data.sw0_press_count));
     }
 
     if (sw1_pressed == true)
     {
-        debug_printGood("AZURE: Button SW1 Count %lu", button_press_data.sw1_press_count);
+        debug_printInfo("AZURE: Button SW1 Count %lu", button_press_data.sw1_press_count);
         RETURN_IF_FAILED(append_button_press_telemetry(&jw, event_name_button_sw1_span, button_press_data.sw1_press_count));
     }
 
@@ -729,7 +729,7 @@ az_result process_device_twin_property(
     {
         if (az_span_is_content_equal_ignoring_case(property_response.request_id, twin_request_id_span))
         {
-            debug_printGood("AZURE: INITIAL GET Received");
+            debug_printInfo("AZURE: INITIAL GET Received");
             twin_properties->flag.isInitialGet = 1;
         }
         else
@@ -739,7 +739,7 @@ az_result process_device_twin_property(
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_DESIRED_PROPERTIES)
     {
-        debug_printWarn("AZURE: Property DESIRED Status %d Version %s",
+        debug_printInfo("AZURE: Property DESIRED Status %d Version %s",
                         property_response.status,
                         az_span_ptr(property_response.version));
     }
@@ -747,7 +747,7 @@ az_result process_device_twin_property(
     {
         if (!az_iot_status_succeeded(property_response.status))
         {
-            debug_printWarn("AZURE: Property REPORTED Status %d Version %s",
+            debug_printInfo("AZURE: Property REPORTED Status %d Version %s",
                             property_response.status,
                             az_span_ptr(property_response.version));
         }
@@ -755,7 +755,7 @@ az_result process_device_twin_property(
     }
     else
     {
-        debug_printWarn("AZURE: Type %d Status %d ID %s Version %s",
+        debug_printInfo("AZURE: Type %d Status %d ID %s Version %s",
                         property_response.response_type,
                         property_response.status,
                         az_span_ptr(property_response.request_id),

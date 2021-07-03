@@ -224,7 +224,7 @@ static int8_t connectMQTTSocket(void)
     int8_t        sslInit;
     socketState_t socketState = getSocketState();
 
-    debug_printGood("CLOUD: Connecting Socket to '%s'", mqtt_host);
+    debug_printInfo("CLOUD: Connecting Socket to '%s'", mqtt_host);
 
     sslInit = m2m_ssl_init(NETWORK_wifiSslCallback);
     if (sslInit != M2M_SUCCESS)
@@ -249,7 +249,7 @@ static int8_t connectMQTTSocket(void)
 
         mqttContext* context = MQTT_GetClientConnectionInfo();
 
-        debug_printGood("CLOUD: Configuring SSL SNI to connect to '%lu.%lu.%lu.%lu'",
+        debug_printInfo("CLOUD: Configuring SSL SNI to connect to '%lu.%lu.%lu.%lu'",
                         (0x0FF & (mqttHostIP)),
                         (0x0FF & (mqttHostIP >> 8)),
                         (0x0FF & (mqttHostIP >> 16)),
@@ -308,7 +308,7 @@ static void connectMQTT()
     }
 
     waitingForMQTT = true;
-    debug_printGood("CLOUD: Starting MQTT Timeout");
+    debug_printInfo("CLOUD: Starting MQTT Timeout");
     mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
 
     // MQTT SUBSCRIBE packet will be sent after the MQTT connection is established.
@@ -401,7 +401,7 @@ void CLOUD_task(void)
                 else
                 {
                     // send request to get Host IP
-                    debug_printGood("CLOUD: Getting IP for %s", mqtt_host);
+                    debug_printInfo("CLOUD: Getting IP for %s", mqtt_host);
                     if (gethostbyname((char*)mqtt_host) != M2M_SUCCESS)
                     {
                         debug_printError("CLOUD: gethostbyname failed");
@@ -541,8 +541,7 @@ void dnsHandler(uint8_t* domainName, uint32_t serverIP)
         shared_networking_params.haveHostIp = 1;
         mqttHostIP                          = serverIP;
 
-        //shared_networking_params.haveHostIp = 1;
-        debug_printInfo(" WIFI: mqttHostIP '%lu.%lu.%lu.%lu'",
+        debug_printGood(" WIFI: mqttHostIP '%lu.%lu.%lu.%lu'",
                         (0x0FF & (serverIP)),
                         (0x0FF & (serverIP >> 8)),
                         (0x0FF & (serverIP >> 16)),

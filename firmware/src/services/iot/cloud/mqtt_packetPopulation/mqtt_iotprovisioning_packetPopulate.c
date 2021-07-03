@@ -79,7 +79,7 @@ void MQTT_CLIENT_iotprovisioning_connect(char* device_id)
     size_t mqtt_username_buffer_len;
     bool   bRet = false;   // assume failure
 
-    debug_printGood("  DPS: Sending MQTT CONNECT to %s", CFG_MQTT_PROVISIONING_HOST);
+    debug_printInfo("  DPS: Sending MQTT CONNECT to %s", CFG_MQTT_PROVISIONING_HOST);
 
     LED_SetGreen(LED_STATE_BLINK_FAST);
 
@@ -210,7 +210,7 @@ bool MQTT_CLIENT_iotprovisioning_subscribe()
 {
     bool bRet = false;   // assume failure
 
-    debug_printGood("  DPS: Sending MQTT SUBSCRIBE");
+    debug_printTrace("  DPS: Sending MQTT SUBSCRIBE");
     // Initialize SUBSCRIBE for DPS register
     mqttSubscribePacket cloudSubscribePacket = {0};
 
@@ -279,7 +279,7 @@ void MQTT_CLIENT_iotprovisioning_connected()
         }
         else
         {
-            debug_printGood("  DPS: Sending MQTT PUBLISH payload '%s'", az_span_ptr(register_payload_span));
+            debug_printInfo("  DPS: Sending MQTT PUBLISH payload '%s'", az_span_ptr(register_payload_span));
 
             // keep retrying connecting to DPS
             dps_retry_counter      = 0;
