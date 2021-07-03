@@ -494,7 +494,9 @@ void CLOUD_task(void)
                 waitingForMQTT                              = false;
                 shared_networking_params.haveMqttConnection = 1;
                 SYS_TIME_TimerStop(mqttTimeoutTaskHandle);
+                SYS_TIME_TimerDestroy(mqttTimeoutTaskHandle);
                 SYS_TIME_TimerStop(cloudResetTaskHandle);
+                SYS_TIME_TimerDestroy(cloudResetTaskHandle);
 
                 if (sendSubscribe == true)
                 {

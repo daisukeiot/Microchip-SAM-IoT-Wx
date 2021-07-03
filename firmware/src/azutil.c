@@ -739,18 +739,16 @@ az_result process_device_twin_property(
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_DESIRED_PROPERTIES)
     {
-        debug_printWarn("AZURE: Property DESIRED Status %d ID %s Version %s",
+        debug_printWarn("AZURE: Property DESIRED Status %d Version %s",
                         property_response.status,
-                        az_span_ptr(property_response.request_id),
                         az_span_ptr(property_response.version));
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_REPORTED_PROPERTIES)
     {
         if (!az_iot_status_succeeded(property_response.status))
         {
-            debug_printWarn("AZURE: Property REPORTED Status %d ID %s Version %s",
+            debug_printWarn("AZURE: Property REPORTED Status %d Version %s",
                             property_response.status,
-                            az_span_ptr(property_response.request_id),
                             az_span_ptr(property_response.version));
         }
         return rc;
@@ -875,7 +873,7 @@ az_result send_reported_property(
         return AZ_OK;
     }
 
-    debug_printGood("AZURE: Sending Property flag 0x%x", twin_properties->flag.AsUSHORT);
+    // debug_printGood("AZURE: Sending Property flag 0x%x", twin_properties->flag.AsUSHORT);
 
     // Clear buffer and initialize JSON Payload.	This creates "{"
     memset(pnp_property_payload_buffer, 0, sizeof(pnp_property_payload_buffer));

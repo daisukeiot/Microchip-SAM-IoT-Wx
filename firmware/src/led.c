@@ -223,7 +223,6 @@ void LED_SetBlue(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_blue);
-                blinkTimer_blue = SYS_TIME_HANDLE_INVALID;
             }
             break;
 
@@ -232,7 +231,6 @@ void LED_SetBlue(led_set_state_t newState)
             if (newState == LED_STATE_HOLD || newState == LED_STATE_OFF)
             {
                 SYS_TIME_TimerStop(blinkTimer_blue);
-                blinkTimer_blue = SYS_TIME_HANDLE_INVALID;
             }
 
             break;
