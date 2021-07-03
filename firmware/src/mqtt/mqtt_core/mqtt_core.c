@@ -1344,7 +1344,6 @@ mqttCurrentState MQTT_ReceptionHandler(mqttContext* mqttConnectionPtr)
     switch (mqttState)
     {
         case WAITFORCONNACK:
-            debug_printGood("!!!! WAITFORCONNACK %x", connackTimeoutOccured);
             keepAliveTimeout = ntohs(txConnectPacket.connectVariableHeader.keepAliveTimer);
             if (connackTimeoutOccured == false)
             {

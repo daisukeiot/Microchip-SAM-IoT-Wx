@@ -215,14 +215,14 @@ static void APP_WiFiConnectionStateChanged(uint8_t status)
 // *****************************************************************************
 void APP_SW0_Handler(void)
 {
-    LED_SetYellow(LED_STATE_HOLD);
+    LED_SetRed(LED_STATE_HOLD);
     button_press_data.sw0_press_count++;
     button_press_data.flag.sw0 = 1;
 }
 
 void APP_SW1_Handler(void)
 {
-    LED_SetYellow(LED_STATE_OFF);
+    LED_SetRed(LED_STATE_OFF);
     button_press_data.sw1_press_count++;
     button_press_data.flag.sw1 = 1;
 }
