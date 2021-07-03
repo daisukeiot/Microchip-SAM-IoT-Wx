@@ -61,7 +61,7 @@ extern az_span           device_id_span;
 extern char              mqtt_username_buffer[203 + 1];
 
 //static const az_span twin_request_id_span = AZ_SPAN_LITERAL_FROM_STR("initial_get");
-static char          mqtt_get_twin_topic_buffer[64];
+static char mqtt_get_twin_topic_buffer[64];
 
 static volatile uint16_t packet_identifier;
 
@@ -156,7 +156,7 @@ void MQTT_CLIENT_iothub_connect(char* device_id)
 
     debug_printGood("  HUB: Sending MQTT CONNECT to '%s'", hub_hostname);
 
-    LED_SetGreen(LED_STATE_BLINK_SLOW);
+    LED_SetCloud(LED_INDICATOR_PENDING);
 
 #ifdef IOT_PLUG_AND_PLAY_MODEL_ID
     az_span_copy(device_id_span, device_id_span_local);
@@ -201,8 +201,7 @@ void MQTT_CLIENT_iothub_connect(char* device_id)
     if ((MQTT_CreateConnectPacket(&cloudConnectPacket)) == false)
     {
         debug_printError("  HUB: Failed to create CONNECT packet to IoT Hub");
-        LED_SetRed(LED_STATE_BLINK_SLOW);
-        //LED_SetGreen(LED_STATE_OFF);
+        LED_SetCloud(LED_INDICATOR_ERROR);
     }
 }
 
@@ -238,8 +237,7 @@ bool MQTT_CLIENT_iothub_subscribe()
     if ((bRet = MQTT_CreateSubscribePacket(&cloudSubscribePacket)) == false)
     {
         debug_printError("  HUB: Failed to create SUBSCRIBE packet to IoT Hub");
-        LED_SetRed(LED_STATE_BLINK_SLOW);
-        LED_SetGreen(LED_STATE_OFF);
+        LED_SetCloud(LED_INDICATOR_ERROR);
     }
 
     return bRet;
@@ -279,7 +277,7 @@ void MQTT_CLIENT_iothub_connected()
     if (MQTT_CreatePublishPacket(&cloudPublishPacket) != true)
     {
         debug_printError("  HUB: PUBLISH failed");
-        LED_SetRed(LED_STATE_BLINK_SLOW);
+        LED_SetCloud(LED_INDICATOR_ERROR);
     }
 
     pf_mqtt_iothub_client.MQTT_CLIENT_task_completed();

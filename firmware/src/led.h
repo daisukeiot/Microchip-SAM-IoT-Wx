@@ -114,6 +114,7 @@ void LED_SetBlue(led_set_state_t newState);
 void LED_SetGreen(led_set_state_t newState);
 void LED_SetYellow(led_set_state_t newState);
 void LED_SetRed(led_set_state_t newState);
+void LED_ToggleRed(void);
 void LED_SetWiFi(led_indicator_name_t state);
 void LED_SetCloud(led_indicator_name_t state);
 

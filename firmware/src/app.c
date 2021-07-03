@@ -88,6 +88,12 @@ static void APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress);
 static void APP_GetTimeNotifyCb(DRV_HANDLE handle, uint32_t timeUTC);
 static void APP_ConnectNotifyCb(DRV_HANDLE handle, WDRV_WINC_CONN_STATE currentState, WDRV_WINC_CONN_ERROR errorCode);
 
+static char LED_Property[3][6] = {
+    "On",
+    "Off",
+    "Blink"
+};
+
 #ifdef CFG_MQTT_PROVISIONING_HOST
 void iot_provisioning_completed(void);
 #endif
@@ -215,14 +221,14 @@ static void APP_WiFiConnectionStateChanged(uint8_t status)
 // *****************************************************************************
 void APP_SW0_Handler(void)
 {
-    LED_SetRed(LED_STATE_HOLD);
+    LED_ToggleRed();
     button_press_data.sw0_press_count++;
     button_press_data.flag.sw0 = 1;
 }
 
 void APP_SW1_Handler(void)
 {
-    LED_SetRed(LED_STATE_OFF);
+    LED_ToggleRed();
     button_press_data.sw1_press_count++;
     button_press_data.flag.sw1 = 1;
 }
@@ -471,7 +477,6 @@ void APP_Tasks(void)
             {
                 App_DataTaskTmrExpired = false;
                 APP_DataTask();
-                //App_DataTaskHandle = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb, 0, APP_DATATASK_INTERVAL, SYS_TIME_SINGLE);
             }
 
             CLOUD_sched();
@@ -516,32 +521,32 @@ static void APP_DataTask(void)
         debug_printWarn("  APP: Not Connected");
     }
 
-    // if (shared_networking_params.haveAPConnection)
-    // {
-    //     LED_SetBlue(LED_STATE_HOLD);
-    // }
-    // else
-    // {
-    //     LED_SetBlue(LED_STATE_OFF);
-    // }
+    if (shared_networking_params.haveAPConnection)
+    {
+        LED_SetBlue(LED_STATE_HOLD);
+    }
+    else
+    {
+        LED_SetBlue(LED_STATE_OFF);
+    }
 
-    // if (shared_networking_params.haveERROR)
-    // {
-    //     LED_SetWiFi(LED_INDICATOR_ERROR);
-    // }
-    // else
-    // {
-    //     LED_SetRed(LED_STATE_OFF);
-    // }
+    if (shared_networking_params.haveERROR)
+    {
+        LED_SetWiFi(LED_INDICATOR_ERROR);
+    }
+    else
+    {
+        LED_SetWiFi(LED_INDICATOR_SUCCESS);
+    }
 
-    // if (CLOUD_isConnected())
-    // {
-    //     LED_SetGreen(LED_STATE_HOLD);
-    // }
-    // else
-    // {
-    //     //LED_SetGreen(LED_STATE_OFF);
-    // }
+    if (CLOUD_isConnected())
+    {
+        LED_SetCloud(LED_INDICATOR_SUCCESS);
+    }
+    else
+    {
+        LED_SetCloud(LED_INDICATOR_ERROR);
+    }
 }
 
 // *****************************************************************************
@@ -607,12 +612,14 @@ void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
     {
         if (twin_properties.flag.yellow_led_found == 1)
         {
-            debug_printInfo("  APP: Found led_y value %d", twin_properties.desired_led_yellow);
+            debug_printInfo("  APP: Found led_y Value '%s' (%d)", 
+                    LED_Property[twin_properties.desired_led_yellow - 1],
+                    twin_properties.desired_led_yellow);
         }
 
         if (twin_properties.flag.telemetry_interval_found == 1)
         {
-            debug_printInfo("  APP: Found telemetryInterval value %d", telemetryInterval);
+            debug_printInfo("  APP: Found telemetryInterval value '%d'", telemetryInterval);
         }
         update_leds(&twin_properties);
         send_reported_property(&twin_properties);
@@ -651,15 +658,14 @@ void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload)
 
         if (twin_properties.flag.yellow_led_found == 1)
         {
-            debug_printInfo("  APP: Found led_y value %d", twin_properties.desired_led_yellow);
-        }
-        else
-        {
+            debug_printInfo("  APP: Found led_y Value '%s' (%d)", 
+                    LED_Property[twin_properties.desired_led_yellow - 1],
+                    twin_properties.desired_led_yellow);
         }
 
         if (twin_properties.flag.telemetry_interval_found == 1)
         {
-            debug_printInfo("  APP: Found telemetryInterval value %d", telemetryInterval);
+            debug_printInfo("  APP: Found telemetryInterval Value '%d'", telemetryInterval);
         }
 
         update_leds(&twin_properties);
@@ -705,7 +711,6 @@ float APP_GetTempSensorValue(void)
             {
                 retVal = ((rxBuffer[0] * 16.0) + (rxBuffer[1] / 16.0));
             }
-            LED_SetRed(LED_STATE_OFF);
         }
         else
         {
@@ -762,11 +767,7 @@ void iot_connection_completed(void)
 {
     debug_printGood("  APP: %s()", __FUNCTION__);
 
-    LED_SetGreen(LED_STATE_HOLD);
-    // App_CloudTaskHandle = SYS_TIME_CallbackRegisterMS(APP_CloudTaskcb,
-    //                                                   0,
-    //                                                   APP_CLOUDTASK_INTERVAL,
-    //                                                   SYS_TIME_PERIODIC);
+    LED_SetCloud(LED_INDICATOR_SUCCESS);
 
     App_DataTaskHandle = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb, 0, APP_DATATASK_INTERVAL, SYS_TIME_PERIODIC);
 }
@@ -777,10 +778,8 @@ void iot_provisioning_completed(void)
     debug_printInfo("  APP: %s()", __FUNCTION__);
     pf_mqtt_iothub_client.MQTT_CLIENT_task_completed = iot_connection_completed;
     CLOUD_init_host(hub_hostname, attDeviceID, &pf_mqtt_iothub_client);
-    CLOUD_disconnect();
     CLOUD_reset();
-    LED_SetGreen(LED_STATE_BLINK_SLOW);
-    //App_DataTaskHandle = SYS_TIME_CallbackRegisterMS(APP_DataTaskcb, 0, APP_DATATASK_INTERVAL, SYS_TIME_PERIODIC);
+    LED_SetCloud(LED_INDICATOR_PENDING);
 }
 #endif   //CFG_MQTT_PROVISIONING_HOST
 

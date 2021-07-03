@@ -369,7 +369,7 @@ void check_led_status(twin_properties_t* twin_properties)
         return;
     }
 
-    debug_printInfo("AZURE: %s() led_change %x", __func__, led_status.change_flag.AsUSHORT);
+    debug_printInfo("AZURE: %s() LED Status 0x%x", __func__, led_status.change_flag.AsUSHORT);
 
     // if this is from Get Twin, update according to Desired Property
     b_force_sync = twin_properties_ptr->flag.isInitialGet == 1 ? true : false;
@@ -729,12 +729,12 @@ az_result process_device_twin_property(
     {
         if (az_span_is_content_equal_ignoring_case(property_response.request_id, twin_request_id_span))
         {
-            debug_printGood("AZURE: INITIAL GET");
+            debug_printGood("AZURE: INITIAL GET Received");
             twin_properties->flag.isInitialGet = 1;
         }
         else
         {
-            debug_printWarn("AZURE: Property GET");
+            debug_printWarn("AZURE: Property GET Received");
         }
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_DESIRED_PROPERTIES)

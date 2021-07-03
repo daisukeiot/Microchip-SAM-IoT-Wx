@@ -213,9 +213,6 @@ void CLOUD_init_host(char* host, char* attDeviceID, pf_MQTT_CLIENT* pf_table)
     pf_mqtt_client                      = pf_table;
     CLOUD_setdeviceId(attDeviceID);
     MQTT_Set_Puback_callback(NULL);
-    // memset(&cloud_packetReceiveCallBackTable, 0, sizeof(cloud_packetReceiveCallBackTable));
-    // cloud_packetReceiveCallBackTable[0].socket       = MQTT_GetClientConnectionInfo()->tcpClientSocket;
-    // cloud_packetReceiveCallBackTable[0].recvCallBack = pf_mqtt_client->MQTT_CLIENT_receive;
 }
 
 //
@@ -493,10 +490,18 @@ void CLOUD_task(void)
             {
                 waitingForMQTT                              = false;
                 shared_networking_params.haveMqttConnection = 1;
-                SYS_TIME_TimerStop(mqttTimeoutTaskHandle);
-                SYS_TIME_TimerDestroy(mqttTimeoutTaskHandle);
-                SYS_TIME_TimerStop(cloudResetTaskHandle);
-                SYS_TIME_TimerDestroy(cloudResetTaskHandle);
+
+                if (mqttTimeoutTaskHandle != SYS_TIME_HANDLE_INVALID)
+                {
+                    SYS_TIME_TimerStop(mqttTimeoutTaskHandle);
+                    SYS_TIME_TimerDestroy(mqttTimeoutTaskHandle);
+                }
+
+                if (cloudResetTaskHandle != SYS_TIME_HANDLE_INVALID)
+                {
+                    SYS_TIME_TimerStop(cloudResetTaskHandle);
+                    SYS_TIME_TimerDestroy(cloudResetTaskHandle);
+                }
 
                 if (sendSubscribe == true)
                 {
@@ -555,7 +560,7 @@ static uint8_t reInit(void)
 
     // Clear LEDs
     LED_SetWiFi(LED_INDICATOR_OFF);
-    LED_SetGreen(LED_STATE_OFF);
+    LED_SetCloud(LED_INDICATOR_OFF);
     LED_SetRed(LED_STATE_OFF);
     LED_SetYellow(LED_STATE_OFF);
 
@@ -596,14 +601,7 @@ static uint8_t reInit(void)
     }
 
     debug_printInfo("CLOUD: WiFi Connect timer start with %d ms", WIFI_CONNECT_TIMEOUT);
-    wifiTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(wifiTimeoutTaskcb, 0, WIFI_CONNECT_TIMEOUT, SYS_TIME_SINGLE);
-
-    // SYS_TIME_TimerStop(cloudResetTaskHandle);
-    // debug_printInfo("CLOUD: Cloud reset timer is deleted");
-
-    // mqttTimeoutTaskHandle = SYS_TIME_CallbackRegisterMS(mqttTimeoutTaskcb, 0, CLOUD_MQTT_TIMEOUT_COUNT, SYS_TIME_SINGLE);
-    // waitingForMQTT        = true;
-
+    wifiTimeoutTaskHandle                     = SYS_TIME_CallbackRegisterMS(wifiTimeoutTaskcb, 0, WIFI_CONNECT_TIMEOUT, SYS_TIME_SINGLE);
     shared_networking_params.cloudInitPending = 0;
 
     return true;

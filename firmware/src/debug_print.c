@@ -70,6 +70,33 @@ void debug_setPrefix(const char* prefix)
     debug_message_prefix[strlen(debug_message_prefix)] = 0;
 }
 
+// *****************************************************************************
+// *****************************************************************************
+// A workaround for OSAL mutex.
+// OSAL Mutex without OS (e.g. FreeRTOS) does not honor wait/OSAL_WAIT_FOREVER.
+// *****************************************************************************
+// *****************************************************************************
+
+void debug_mutex_lock(OSAL_MUTEX_HANDLE_TYPE* mutexID)
+{
+
+    while (OSAL_RESULT_TRUE != OSAL_MUTEX_Lock(mutexID, OSAL_WAIT_FOREVER))
+    {
+        // give a short delay (5ms)
+        SYS_TIME_HANDLE tmrHandle = SYS_TIME_HANDLE_INVALID;
+
+        if (SYS_TIME_SUCCESS != SYS_TIME_DelayMS(5, &tmrHandle))
+        {
+            return;
+        }
+
+        while (true != SYS_TIME_DelayIsComplete(tmrHandle))
+        {
+            continue;
+        }
+    }
+}
+
 void debug_printer(debug_severity_t debug_severity, debug_errorLevel_t error_level, const char* format, ...)
 {
     size_t  len = 0;
@@ -85,30 +112,29 @@ void debug_printer(debug_severity_t debug_severity, debug_errorLevel_t error_lev
             if (error_level > LEVEL_ERROR)
                 error_level = LEVEL_ERROR;
 
-            if (OSAL_RESULT_TRUE == OSAL_MUTEX_Lock(&consoleMutex, OSAL_WAIT_FOREVER))
+            debug_mutex_lock(&consoleMutex);
+
+            sprintf(tmpFormat, "%s %s %s %s\r\n" CSI_RESET, debug_message_prefix, severity_strings[debug_severity], level_strings[error_level], format);
+
+            va_start(args, format);
+            len = vsnprintf(tmpBuf, APP_PRINT_BUFFER_SIZE, tmpFormat, args);
+            va_end(args);
+
+            if ((len > 0) && (len < APP_PRINT_BUFFER_SIZE))
             {
-                sprintf(tmpFormat, "%s %s %s %s\r\n" CSI_RESET, debug_message_prefix, severity_strings[debug_severity], level_strings[error_level], format);
-
-                va_start(args, format);
-                len = vsnprintf(tmpBuf, APP_PRINT_BUFFER_SIZE, tmpFormat, args);
-                va_end(args);
-
-                if ((len > 0) && (len < APP_PRINT_BUFFER_SIZE))
+                char* pBuf;
+                if ((len + printBuffPtr) > APP_PRINT_BUFFER_SIZE)
                 {
-                    char *pBuf;
-                    if ((len + printBuffPtr) > APP_PRINT_BUFFER_SIZE)
-                    {
-                        printBuffPtr = 0;
-                    }
-
-                    memcpy(&printBuff[printBuffPtr], tmpBuf, len);
-                    pBuf = &printBuff[printBuffPtr];
-                    printBuff[printBuffPtr + len + 1] = '\0';
-                    printBuffPtr = (printBuffPtr + len + 3) & ~3;
-                    SYS_CONSOLE_Write(0, pBuf, len);
+                    printBuffPtr = 0;
                 }
-                OSAL_MUTEX_Unlock(&consoleMutex);
+
+                memcpy(&printBuff[printBuffPtr], tmpBuf, len);
+                pBuf                              = &printBuff[printBuffPtr];
+                printBuff[printBuffPtr + len + 1] = '\0';
+                printBuffPtr                      = (printBuffPtr + len + 3) & ~3;
+                SYS_CONSOLE_Write(0, pBuf, len);
             }
+            OSAL_MUTEX_Unlock(&consoleMutex);
         }
     }
 }

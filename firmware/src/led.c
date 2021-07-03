@@ -31,11 +31,11 @@
 
 led_status_t led_status;
 
-#define LED_50ms_INTERVAL  50L
-#define LED_100ms_INTERVAL 100L
-#define LED_400ms_INTERVAL 400L
-#define LED_ON_INTERVAL    200L
-#define LEDS_HOLD_INTERVAL 2000L
+#define LED_50ms_INTERVAL   50L
+#define LED_100ms_INTERVAL  100L
+#define LED_400ms_INTERVAL  400L
+#define LED_ON_INTERVAL     200L
+#define LED_TOGGLE_INTERVAL 3000L
 
 void blink_task(uintptr_t context);
 
@@ -43,6 +43,7 @@ SYS_TIME_HANDLE blinkTimer_blue   = SYS_TIME_HANDLE_INVALID;
 SYS_TIME_HANDLE blinkTimer_green  = SYS_TIME_HANDLE_INVALID;
 SYS_TIME_HANDLE blinkTimer_yellow = SYS_TIME_HANDLE_INVALID;
 SYS_TIME_HANDLE blinkTimer_red    = SYS_TIME_HANDLE_INVALID;
+SYS_TIME_HANDLE toggleTimer_red   = SYS_TIME_HANDLE_INVALID;
 
 #define CSI_RESET   "\33[0m"
 #define CSI_RED     "\33[31m"
@@ -519,6 +520,21 @@ void LED_SetRed(led_set_state_t newState)
 
     led_status.state_flag.red  = newState;
     led_status.change_flag.red = 1;
+}
+
+void LED_ToggleRed(void)
+{
+    switch (led_status.state_flag.red)
+    {
+        case LED_STATE_OFF:
+        case LED_STATE_HOLD:
+            LED_RED_Toggle_EX();
+            toggleTimer_red = SYS_TIME_CallbackRegisterMS(blink_task, LED_RED, LED_TOGGLE_INTERVAL, SYS_TIME_SINGLE);
+            break;
+
+        default:
+            break;
+    }
 }
 
 void LED_SetWiFi(led_indicator_name_t state)

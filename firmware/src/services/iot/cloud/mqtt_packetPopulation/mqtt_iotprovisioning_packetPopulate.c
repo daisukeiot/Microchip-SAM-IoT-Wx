@@ -186,16 +186,17 @@ void dps_client_register(uint8_t* topic, uint8_t* payload)
                 debug_printGood("  DPS: ASSIGNED to %s", hub_hostname);
 
                 pf_mqtt_iotprovisioning_client.MQTT_CLIENT_task_completed();
+                LED_SetCloud(LED_INDICATOR_PENDING);
                 break;
 
             case AZ_IOT_PROVISIONING_STATUS_FAILED:
                 debug_printError("  DPS: Registration FAILED.  Status = %d", dps_register_response.status);
-                LED_SetRed(LED_STATE_BLINK_FAST);
+                LED_SetCloud(LED_INDICATOR_ERROR);
                 break;
 
             case AZ_IOT_PROVISIONING_STATUS_DISABLED:
                 debug_printWarn("  DPS: DISABLED");
-                LED_SetRed(LED_STATE_BLINK_FAST);
+                LED_SetCloud(LED_INDICATOR_ERROR);
                 break;
 
             default:
@@ -229,7 +230,7 @@ bool MQTT_CLIENT_iotprovisioning_subscribe()
     if ((bRet = MQTT_CreateSubscribePacket(&cloudSubscribePacket)) == false)
     {
         debug_printError("  DPS: Failed to create SUBSCRIBE packet");
-        LED_SetRed(LED_STATE_BLINK_FAST);
+        LED_SetCloud(LED_INDICATOR_ERROR);
     }
 
     return bRet;
@@ -288,7 +289,7 @@ void MQTT_CLIENT_iotprovisioning_connected()
 
     if (!bRet)
     {
-        LED_SetRed(LED_STATE_BLINK_FAST);
+        LED_SetCloud(LED_INDICATOR_ERROR);
     }
 }
 
@@ -328,7 +329,7 @@ static void dps_assigning_task(uintptr_t context)
 
     if (!bRet)
     {
-        LED_SetRed(LED_STATE_BLINK_FAST);
+        LED_SetCloud(LED_INDICATOR_ERROR);
     }
 
     return;
