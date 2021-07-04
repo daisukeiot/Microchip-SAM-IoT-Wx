@@ -92,7 +92,7 @@ static char LED_Property[3][6] = {
     "On",
     "Off",
     "Blink"
-};
+    };
 
 #ifdef CFG_MQTT_PROVISIONING_HOST
 void iot_provisioning_completed(void);
@@ -341,7 +341,7 @@ static void APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress)
                     (0x0FF & (ipAddress >> 24)));
 
     shared_networking_params.haveIpAddress = 1;
-    shared_networking_params.haveERROR = 0;
+    shared_networking_params.haveERROR     = 0;
 }
 
 static void APP_ProvisionRespCb(DRV_HANDLE handle, WDRV_WINC_SSID* targetSSID,
@@ -577,15 +577,15 @@ void APP_ReceivedFromCloud_methods(uint8_t* topic, uint8_t* payload)
 
     if (az_result_succeeded(rc))
     {
-    //   debug_printInfo("  APP: Command Topic  : %s", az_span_ptr(command_topic_span));
-    //   debug_printInfo("  APP: Command Name   : %s", az_span_ptr(command_request.command_name));
-    //   debug_printInfo("  APP: Command Payload: %s", (char*)payload);
+        //   debug_printInfo("  APP: Command Topic  : %s", az_span_ptr(command_topic_span));
+        //   debug_printInfo("  APP: Command Name   : %s", az_span_ptr(command_request.command_name));
+        //   debug_printInfo("  APP: Command Payload: %s", (char*)payload);
 
-      process_direct_method_command(payload, &command_request);
+        process_direct_method_command(payload, &command_request);
     }
     else
     {
-      debug_printError("  APP: Command from unknown topic: '%s' return code 0x%08x.", az_span_ptr(command_topic_span), rc);
+        debug_printError("  APP: Command from unknown topic: '%s' return code 0x%08x.", az_span_ptr(command_topic_span), rc);
     }
 }
 
@@ -612,9 +612,9 @@ void APP_ReceivedFromCloud_patch(uint8_t* topic, uint8_t* payload)
     {
         if (twin_properties.flag.yellow_led_found == 1)
         {
-            debug_printInfo("  APP: Found led_y Value '%s' (%d)", 
-                    LED_Property[twin_properties.desired_led_yellow - 1],
-                    twin_properties.desired_led_yellow);
+            debug_printInfo("  APP: Found led_y Value '%s' (%d)",
+                            LED_Property[twin_properties.desired_led_yellow - 1],
+                            twin_properties.desired_led_yellow);
         }
 
         if (twin_properties.flag.telemetry_interval_found == 1)
@@ -656,9 +656,9 @@ void APP_ReceivedFromCloud_twin(uint8_t* topic, uint8_t* payload)
 
         if (twin_properties.flag.yellow_led_found == 1)
         {
-            debug_printInfo("  APP: Found led_y Value '%s' (%d)", 
-                    LED_Property[twin_properties.desired_led_yellow - 1],
-                    twin_properties.desired_led_yellow);
+            debug_printInfo("  APP: Found led_y Value '%s' (%d)",
+                            LED_Property[twin_properties.desired_led_yellow - 1],
+                            twin_properties.desired_led_yellow);
         }
 
         if (twin_properties.flag.telemetry_interval_found == 1)

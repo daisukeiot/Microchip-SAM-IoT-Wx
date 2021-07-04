@@ -214,7 +214,7 @@ typedef union
         unsigned haveMqttConnection : 1;
         unsigned amDisconnecting : 1;
         unsigned haveERROR : 1;
-        unsigned cloudInitPending :1;
+        unsigned cloudInitPending : 1;
         unsigned : 8;
     };
 } shared_networking_params_t;

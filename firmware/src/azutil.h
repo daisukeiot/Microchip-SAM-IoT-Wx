@@ -92,18 +92,19 @@ typedef struct
 
 typedef union
 {
-    struct {
-        unsigned sw0:1;
-        unsigned sw1:1;
-        unsigned reserved:14;
+    struct
+    {
+        unsigned sw0 : 1;
+        unsigned sw1 : 1;
+        unsigned reserved : 14;
     };
     unsigned AsUSHORT;
 } button_press_flag_t;
 
 typedef struct
 {
-    uint32_t sw0_press_count;
-    uint32_t sw1_press_count;
+    uint32_t            sw0_press_count;
+    uint32_t            sw1_press_count;
     button_press_flag_t flag;
 } button_press_data_t;
 
@@ -141,7 +142,7 @@ az_result send_reported_property(
     twin_properties_t* twin_properties);
 
 az_result process_direct_method_command(
-    uint8_t*                                 payload,
+    uint8_t*                           payload,
     az_iot_pnp_client_command_request* command_request);
 
 az_result process_device_twin_property(
