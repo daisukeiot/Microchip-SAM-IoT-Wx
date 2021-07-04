@@ -88,7 +88,7 @@ static void APP_DHCPAddressEventCb(DRV_HANDLE handle, uint32_t ipAddress);
 static void APP_GetTimeNotifyCb(DRV_HANDLE handle, uint32_t timeUTC);
 static void APP_ConnectNotifyCb(DRV_HANDLE handle, WDRV_WINC_CONN_STATE currentState, WDRV_WINC_CONN_ERROR errorCode);
 
-static char LED_Property[3][6] = {
+static char *LED_Property[3] = {
     "On",
     "Off",
     "Blink"
