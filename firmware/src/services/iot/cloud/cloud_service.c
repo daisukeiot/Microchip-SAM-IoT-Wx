@@ -294,7 +294,8 @@ static int8_t connectMQTTSocket(void)
 //
 static void connectMQTT()
 {
-    time_t    currentTime;   // = time(NULL);
+    time_t    currentTime;
+
     struct tm sys_time;
 
     RTC_RTCCTimeGet(&sys_time);
