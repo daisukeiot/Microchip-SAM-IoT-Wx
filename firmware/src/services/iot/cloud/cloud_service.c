@@ -356,15 +356,6 @@ void CLOUD_task(void)
     mqttContext*  mqttConnnectionInfo = MQTT_GetClientConnectionInfo();
     socketState_t socketState         = BSD_GetSocketState(*mqttConnnectionInfo->tcpClientSocket);
 
-    // typedef enum
-    // {
-    // 	NOT_A_SOCKET = 0,           // This is not a socket
-    // 	SOCKET_CLOSED,              // Socket closed
-    // 	SOCKET_IN_PROGRESS,         // The TCP listen or initiate a connection
-    // 	SOCKET_CONNECTED,           // The TCP is in established state user can send/receive data
-    // 	SOCKET_CLOSING              // The user initiate the closing procedure for this socket
-    // } socketState_t;
-
     switch (socketState)
     {
         case NOT_A_SOCKET:   // 0
@@ -455,14 +446,6 @@ void CLOUD_task(void)
         {
 
             mqttCurrentState mqttState = MQTT_GetConnectionState();
-
-            // typedef enum
-            // {
-            //     DISCONNECTED   = 0,
-            //     CONNECTING     = 1,
-            //     WAITFORCONNACK = 2,
-            //     CONNECTED      = 3
-            // } mqttCurrentState;
 
             // Socket is connected.
             if (mqttState == DISCONNECTED)
