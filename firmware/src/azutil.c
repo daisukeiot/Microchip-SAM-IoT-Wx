@@ -6,7 +6,7 @@
 extern az_iot_pnp_client pnp_client;
 extern volatile uint32_t telemetryInterval;
 
-// used by led.c to communicate LED states changes
+// used by led.c to communicate LED state changes
 extern led_status_t led_status;
 
 extern uint16_t packet_identifier;
