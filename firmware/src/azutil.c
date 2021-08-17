@@ -345,7 +345,7 @@ void check_led_status(twin_properties_t* twin_properties)
     twin_properties_t* twin_properties_ptr;
     twin_properties_t  twin_properties_local;
 
-    bool b_force_sync = false;   // force LED status synchronization if this request is coming from Twin Get
+    bool force_sync = false;   // force LED status synchronization if this request is coming from Twin Get
 
     if (twin_properties == NULL)
     {
@@ -715,7 +715,7 @@ az_result process_device_twin_property(
         }
         else
         {
-            debug_printWarn("AZURE: Property GET Received");
+            debug_printInfo("AZURE: Property GET Received");
         }
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_DESIRED_PROPERTIES)
@@ -732,6 +732,8 @@ az_result process_device_twin_property(
                             property_response.status,
                             az_span_ptr(property_response.version));
         }
+        
+        // This is an acknowledgement from the service that it received our properties. No need to respond.
         return rc;
     }
     else
