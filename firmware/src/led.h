@@ -50,6 +50,8 @@
 #define LED_BLUE_Toggle_EX()   LED_WIFI_GPIO_PA21_Toggle()
 #define LED_RED_Toggle_EX()    LED_ERR_GPIO_PA25_Toggle()
 
+#define LED_FLAG_EMPTY 0
+
 typedef enum
 {
     LED_BLUE,
