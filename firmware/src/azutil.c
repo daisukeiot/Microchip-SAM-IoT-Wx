@@ -871,7 +871,7 @@ az_result send_reported_property(
 
     // debug_printGood("AZURE: Sending Property flag 0x%x", twin_properties->flag.as_uint16);
 
-    // Clear buffer and initialize JSON Payload.	This creates "{"
+    // Clear buffer and initialize JSON Payload. This creates "{"
     memset(pnp_property_payload_buffer, 0, sizeof(pnp_property_payload_buffer));
     az_span payload_span = AZ_SPAN_FROM_BUFFER(pnp_property_payload_buffer);
 
