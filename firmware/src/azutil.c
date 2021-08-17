@@ -676,7 +676,7 @@ az_result process_direct_method_command(
 
 /**********************************************
 * Parse Desired Property (Writable Property)
-* Respond by updating Reported Property with IoT Plug and Play convention
+* Respond by updating Writable Property with IoT Plug and Play convention
 * https://docs.microsoft.com/en-us/azure/iot-pnp/concepts-convention#writable-properties
 * e.g.
 * "reported": {
