@@ -656,7 +656,7 @@ az_result process_direct_method_command(
                                                                        command_resp_not_supported_span,
                                                                        &command_resp_span)))
         {
-            debug_printError("AZURE: Fail build error response. (0x%08x)", rc);
+            debug_printError("AZURE: Failed to build error response. (0x%08x)", rc);
         }
     }
 
