@@ -747,6 +747,8 @@ az_result process_device_twin_property(
                             property_response.status,
                             az_span_ptr(property_response.version));
         }
+        
+        // This is an acknowledgement from the service that it received our properties. No need to respond.
         return rc;
     }
     else
