@@ -1,5 +1,5 @@
 /*
-	\file   mqtt_iothub_packetParameters.c
+	\file   mqtt_iothub_packetPopulate.c
 
 	\brief  MQTT Packet Parameters source file.
 
