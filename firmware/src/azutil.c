@@ -885,7 +885,7 @@ az_result send_reported_property(
                     &jw,
                     property_telemetry_interval_span,
                     telemetryInterval,
-                    AZ_HTTP_STATUS_CODE_OK,
+                    AZ_IOT_STATUS_OK,
                     twin_properties->version_num,
                     AZ_SPAN_FROM_STR("Success"))))
         {
