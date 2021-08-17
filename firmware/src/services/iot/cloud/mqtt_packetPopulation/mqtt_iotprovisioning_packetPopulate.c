@@ -283,7 +283,7 @@ void MQTT_CLIENT_iotprovisioning_connected()
 
             // keep retrying connecting to DPS
             dps_retry_counter      = 0;
-            dps_retry_timer_handle = SYS_TIME_CallbackRegisterMS(dps_retry_task, 0, HALF_SECOND, SYS_TIME_PERIODIC);
+            dps_retry_timer_handle = SYS_TIME_CallbackRegisterMS(dps_retry_task, 0, HALF_SECOND_MS, SYS_TIME_PERIODIC);
         }
     }
 
