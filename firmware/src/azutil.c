@@ -956,7 +956,7 @@ az_result send_reported_property(
                     led_red_property_name_span,
                     twin_properties->reported_led_red)))
         {
-            debug_printError("AZURE: Unable to add property for Blue LED, return code  0x%08x", rc);
+            debug_printError("AZURE: Unable to add property for Red LED, return code  0x%08x", rc);
             return rc;
         }
     }
