@@ -345,7 +345,7 @@ void check_led_status(twin_properties_t* twin_properties)
     twin_properties_t* twin_properties_ptr;
     twin_properties_t  twin_properties_local;
 
-    bool b_force_sync = false;   // force LED status synchronization if this request is coming from Twin Get
+    bool force_sync = false;   // force LED status synchronization if this request is coming from Twin Get
 
     if (twin_properties == NULL)
     {
