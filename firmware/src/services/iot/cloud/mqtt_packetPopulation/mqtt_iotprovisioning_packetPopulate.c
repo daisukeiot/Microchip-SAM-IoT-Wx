@@ -20,7 +20,7 @@
 #include "azure/core/az_span.h"
 
 #ifdef CFG_MQTT_PROVISIONING_HOST
-#define HALF_SECOND 500L
+#define HALF_SECOND_MS 500L
 
 pf_MQTT_CLIENT pf_mqtt_iotprovisioning_client = {
     MQTT_CLIENT_iotprovisioning_publish,
