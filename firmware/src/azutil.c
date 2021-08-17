@@ -594,7 +594,7 @@ static az_result process_reboot_command(
                                                             reboot_delay_seconds,
                                                             out_response_span));
 
-            *out_response_status = AZ_HTTP_STATUS_CODE_ACCEPTED;
+            *out_response_status = AZ_IOT_STATUS_ACCEPTED;
 
             debug_printInfo("AZURE: Scheduling reboot in %d sec", reboot_delay_seconds);
 
