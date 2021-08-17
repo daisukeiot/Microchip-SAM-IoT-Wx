@@ -522,7 +522,7 @@ static az_result process_reboot_command(
                                                    command_resp_missing_payload_span,
                                                    out_response_span);
 
-        *out_response_status = AZ_HTTP_STATUS_CODE_BAD_REQUEST;
+        *out_response_status = AZ_IOT_STATUS_BAD_REQUEST;
     }
     else
     {
