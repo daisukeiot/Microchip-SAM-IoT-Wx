@@ -368,11 +368,11 @@ void check_led_status(twin_properties_t* twin_properties)
     debug_printInfo("AZURE: %s() LED Status 0x%x", __func__, led_status.change_flag.as_uint16);
 
     // if this is from Get Twin, update according to Desired Property
-    b_force_sync = twin_properties_ptr->flag.is_initial_get == 1 ? true : false;
+    force_sync = twin_properties_ptr->flag.is_initial_get == 1 ? true : false;
 
-    if (led_status.change_flag.as_uint16 != LED_FLAG_EMPTY || b_force_sync)
+    if (led_status.change_flag.as_uint16 != LED_FLAG_EMPTY || force_sync)
     {
-        if (led_status.change_flag.blue == 1 || b_force_sync)
+        if (led_status.change_flag.blue == 1 || force_sync)
         {
             if ((led_status.state_flag.blue & (LED_STATE_BLINK_SLOW | LED_STATE_BLINK_FAST)) != 0)
             {
@@ -388,7 +388,7 @@ void check_led_status(twin_properties_t* twin_properties)
             }
         }
 
-        if (led_status.change_flag.green == 1 || b_force_sync)
+        if (led_status.change_flag.green == 1 || force_sync)
         {
             if ((led_status.state_flag.green & (LED_STATE_BLINK_SLOW | LED_STATE_BLINK_FAST)) != 0)
             {
@@ -404,7 +404,7 @@ void check_led_status(twin_properties_t* twin_properties)
             }
         }
 
-        if (led_status.change_flag.red == 1 || b_force_sync)
+        if (led_status.change_flag.red == 1 || force_sync)
         {
             if ((led_status.state_flag.red & (LED_STATE_BLINK_SLOW | LED_STATE_BLINK_FAST)) != 0)
             {
@@ -424,7 +424,7 @@ void check_led_status(twin_properties_t* twin_properties)
         led_status.change_flag.as_uint16 = LED_FLAG_EMPTY;
 
         // if this is from Get Twin, Device Twin code path will update reported properties
-        if (!b_force_sync)
+        if (!force_sync)
         {
             send_reported_property(twin_properties_ptr);
         }
