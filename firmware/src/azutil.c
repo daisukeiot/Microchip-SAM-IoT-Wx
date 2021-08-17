@@ -730,7 +730,7 @@ az_result process_device_twin_property(
         }
         else
         {
-            debug_printWarn("AZURE: Property GET Received");
+            debug_printInfo("AZURE: Property GET Received");
         }
     }
     else if (property_response.response_type == AZ_IOT_PNP_CLIENT_PROPERTY_RESPONSE_TYPE_DESIRED_PROPERTIES)
