@@ -621,7 +621,7 @@ az_result process_direct_method_command(
     az_iot_pnp_client_command_request* command_request)
 {
     az_result rc                = AZ_OK;
-    uint16_t  response_status   = AZ_HTTP_STATUS_CODE_BAD_REQUEST;   // assume error
+    uint16_t  response_status   = AZ_IOT_STATUS_BAD_REQUEST;   // assume error
     az_span   command_resp_span = AZ_SPAN_FROM_BUFFER(pnp_command_resp_buffer);
     az_span   payload_span      = az_span_create_from_str((char*)payload);
 
