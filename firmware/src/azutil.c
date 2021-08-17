@@ -510,7 +510,7 @@ static az_result process_reboot_command(
     az_result      ret              = AZ_OK;
     char           reboot_delay[32] = {0};
     az_json_reader jr;
-    *out_response_status = AZ_HTTP_STATUS_CODE_INTERNAL_SERVER_ERROR;
+    *out_response_status = AZ_IOT_STATUS_SERVER_ERROR;
 
     debug_printInfo("AZURE: %s() : Payload %s", __func__, az_span_ptr(payload_span));
 
